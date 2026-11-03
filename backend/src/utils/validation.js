@@ -5,13 +5,34 @@ export const EXPENSE_CATEGORIES = [
   'Food', 'Transport', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Other',
 ];
 
+// Helper to accept date strings from HTML date/datetime-local inputs as well as ISO strings
+const flexibleDate = z.preprocess((val) => {
+  if (val === undefined) return undefined;
+  if (val === null || val === '') return null;
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+  return val;
+}, z.string().datetime().nullable().optional());
+
+// Helper for case-insensitive task types (accepts 'task', 'reminder', 'TASK', 'REMINDER')
+export const TASK_TYPES = ['TASK', 'REMINDER'];
+const flexibleTaskType = z.preprocess((val) => {
+  if (typeof val === 'string') return val.toUpperCase();
+  return val;
+}, z.enum(TASK_TYPES));
+
 // --- Expense Schemas ---
 export const createExpenseSchema = z.object({
   amount: z.number().positive('Amount must be greater than 0'),
   currency: z.string().default('INR'),
   category: z.enum(EXPENSE_CATEGORIES).default('Other'),
   note: z.string().default(''),
-  date: z.string().datetime({ offset: true }).optional(),
+  date: flexibleDate,
 });
 
 export const updateExpenseSchema = z.object({
@@ -19,23 +40,21 @@ export const updateExpenseSchema = z.object({
   currency: z.string().optional(),
   category: z.enum(EXPENSE_CATEGORIES).optional(),
   note: z.string().optional(),
-  date: z.string().datetime({ offset: true }).optional(),
+  date: flexibleDate,
 });
 
 // --- Task Schemas ---
-export const TASK_TYPES = ['TASK', 'REMINDER'];
-
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  type: z.enum(TASK_TYPES).default('TASK'),
-  dueDate: z.string().datetime({ offset: true }).nullable().optional(),
+  type: flexibleTaskType.default('TASK'),
+  dueDate: flexibleDate,
   completed: z.boolean().default(false),
 });
 
 export const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
-  type: z.enum(TASK_TYPES).optional(),
-  dueDate: z.string().datetime({ offset: true }).nullable().optional(),
+  type: flexibleTaskType.optional(),
+  dueDate: flexibleDate,
   completed: z.boolean().optional(),
   notified: z.boolean().optional(),
 });

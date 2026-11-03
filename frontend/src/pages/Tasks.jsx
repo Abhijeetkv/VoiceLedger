@@ -93,43 +93,59 @@ export default function Tasks() {
     }
     setSubmitting(true);
     try {
+      const taskType = type === 'reminder' ? 'REMINDER' : 'TASK';
+      const formattedDate = newItem.dueDate ? new Date(newItem.dueDate).toISOString() : null;
+
       await createTask({
-        title: newItem.title,
-        type,
-        dueDate: newItem.dueDate || undefined,
+        title: newItem.title.trim(),
+        type: taskType,
+        dueDate: formattedDate,
       });
+
       toast.success(`${type === 'task' ? 'Task' : 'Reminder'} added!`);
       setNewItem({ title: '', dueDate: '' });
       setShowAddTask(false);
       setShowAddReminder(false);
-      fetchAll();
+      await fetchAll();
     } catch (err) {
-      toast.error(`Failed to add ${type}`);
+      const msg = err.response?.data?.error || err.response?.data?.details?.[0]?.message || `Failed to add ${type}`;
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleToggle = async (item) => {
+    const id = item.id || item._id;
+    const newCompleted = !item.completed;
+
+    // Optimistic UI update
+    setTasks((prev) => prev.map((t) => ((t.id || t._id) === id ? { ...t, completed: newCompleted } : t)));
+    setReminders((prev) => prev.map((r) => ((r.id || r._id) === id ? { ...r, completed: newCompleted } : r)));
+
     try {
-      const id = item._id || item.id;
-      await updateTask(id, { completed: !item.completed });
-      fetchAll();
+      await updateTask(id, { completed: newCompleted });
     } catch (err) {
-      toast.error('Failed to update');
+      toast.error('Failed to update status');
+      fetchAll();
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    const id = deleteTarget.id || deleteTarget._id;
+
+    // Optimistic UI update
+    setTasks((prev) => prev.filter((t) => (t.id || t._id) !== id));
+    setReminders((prev) => prev.filter((r) => (r.id || r._id) !== id));
+
     try {
-      const id = deleteTarget._id || deleteTarget.id;
       await deleteTask(id);
-      toast.success('Deleted');
+      toast.success('Deleted successfully');
       setDeleteTarget(null);
-      fetchAll();
     } catch (err) {
-      toast.error('Failed to delete');
+      toast.error('Failed to delete item');
+      fetchAll();
     }
   };
 
@@ -149,13 +165,22 @@ export default function Tasks() {
         onChange={(e) => setNewItem({ ...newItem, dueDate: e.target.value })}
         className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/10 transition-all"
       />
-      <button
-        onClick={() => handleAdd(type)}
-        disabled={submitting}
-        className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-all disabled:opacity-50 whitespace-nowrap shadow-xs"
-      >
-        {submitting ? 'Adding...' : 'Add'}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => handleAdd(type)}
+          disabled={submitting}
+          className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-all disabled:opacity-50 whitespace-nowrap shadow-xs"
+        >
+          {submitting ? 'Adding...' : 'Add'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setShowAddTask(false); setShowAddReminder(false); setNewItem({ title: '', dueDate: '' }); }}
+          className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-medium transition-all whitespace-nowrap"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 
