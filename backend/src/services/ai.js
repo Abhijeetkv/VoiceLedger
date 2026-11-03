@@ -123,8 +123,44 @@ function categorizeExpenseNote(note) {
  */
 function fallbackParseVoiceCommand(transcript, currentDateISO) {
   const actions = [];
-  const lower = transcript.toLowerCase();
+  const lower = (transcript || '').toLowerCase().trim();
   const now = new Date(currentDateISO || new Date());
+
+  // 0. Conversational greetings, confirmations, and casual chat
+  if (/^(?:hi|hello|hey|hola|namaste|good\s+(?:morning|afternoon|evening))\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "Hello! I am your VoiceLedger assistant. You can tell me your expenses, tasks, or reminders.",
+    };
+  }
+
+  if (/\b(?:how\s+are\s+you|how's\s+it\s+going|kaise\s+ho)\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "I am doing great, ready to help you track your spending and reminders! What can I log for you?",
+    };
+  }
+
+  if (/\b(?:what\s+can\s+you\s+do|help|who\s+are\s+you|kya\s+kar\s+sakte\s+ho)\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "I can log your daily expenses, create tasks, set reminders, and query your spending. Just speak naturally!",
+    };
+  }
+
+  if (/^(?:yeah|yes|ok|okay|yep|sure|alright|fine|cool|haan|theek\s+hai)(?:\s+(?:yeah|yes|ok|okay|bro|man|dude))*$/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "I am ready! What expense or reminder would you like to add?",
+    };
+  }
+
+  if (/^(?:bro|hey\s+bro|can\s+you|could\s+you|bro\s+could\s+you|please)\b/i.test(lower) && !/\d+/.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "Sure! Tell me the expense or task you would like to record.",
+    };
+  }
 
   // 1. Spending query
   if (lower.includes('how much') || lower.includes('show my') || lower.includes('what was my') || lower.includes('summary')) {
@@ -242,7 +278,7 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
   if (actions.length === 0) {
     return {
       actions: [],
-      spokenReply: '',
+      spokenReply: "I heard you! Please tell me an expense amount or a reminder task to record.",
     };
   }
 
