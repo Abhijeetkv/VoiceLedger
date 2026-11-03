@@ -4,7 +4,6 @@ import {
   Wallet,
   CheckSquare,
   Mic,
-  Settings,
   X,
   AudioWaveform,
 } from 'lucide-react';
@@ -14,7 +13,6 @@ const navItems = [
   { to: '/expenses', label: 'Expenses', icon: Wallet },
   { to: '/tasks', label: 'Tasks & Reminders', icon: CheckSquare },
   { to: '/assistant', label: 'AI Assistant', icon: Mic },
-  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

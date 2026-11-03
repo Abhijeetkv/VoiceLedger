@@ -4,7 +4,6 @@ import Dashboard from './pages/Dashboard.jsx';
 import Expenses from './pages/Expenses.jsx';
 import Tasks from './pages/Tasks.jsx';
 import Assistant from './pages/Assistant.jsx';
-import Settings from './pages/Settings.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 
 export default function App() {
@@ -16,7 +15,6 @@ export default function App() {
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/assistant" element={<Assistant />} />
-          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </ToastProvider>
