@@ -1,6 +1,6 @@
 # VoiceLedger Backend Engine
 
-The backend service for **VoiceLedger** is built with Node.js, Express.js (ES Modules), Prisma ORM, and Google Gemini 2.0 Flash. It handles voice command parsing, database transactions, analytical calculations, and email dispatches.
+The backend service for **VoiceLedger** is built with Node.js, Express.js (ES Modules), Prisma ORM, and Google Gemini 3.8 Flash. It handles voice command parsing, database transactions, analytical calculations, JWT authentication, and transactional email dispatches.
 
 ---
 
@@ -9,9 +9,11 @@ The backend service for **VoiceLedger** is built with Node.js, Express.js (ES Mo
 ```mermaid
 graph LR
     Req[HTTP Request] --> Express[Express.js App]
-    Express --> Router[Express Router]
+    Express --> AuthMid[JWT Authentication Middleware]
+    AuthMid --> Router[Express Router]
     
     subgraph Route Handlers
+        Router --> AuthRoute[/api/auth]
         Router --> VoiceRoute[/api/voice-command]
         Router --> ExpenseRoute[/api/expenses]
         Router --> TaskRoute[/api/tasks]
@@ -19,7 +21,7 @@ graph LR
         Router --> DemoRoute[/api/demo]
     end
     
-    VoiceRoute --> AIService[Gemini 2.0 Flash Engine]
+    VoiceRoute --> AIService[Gemini 3.8 Flash + Fallback Tokenizer]
     AIService --> ZodVal[Zod Action Validation]
     ZodVal --> ActionExec[Action Execution Engine]
     
@@ -36,29 +38,33 @@ graph LR
 
 ```
 backend/
+├── api/
+│   └── index.js                  # Vercel serverless function entry point
 ├── prisma/
 │   ├── schema.prisma             # PostgreSQL data model definitions
-│   ├── seed.js                   # Idempotent realistic 30-day college dataset
-│   └── migrations/               # Initial SQL migration scripts
+│   └── seed.js                   # Idempotent realistic 30-day college dataset
 ├── src/
-│   ├── index.js                  # Express setup, middleware, server listener
+│   ├── index.js                  # Express setup, CORS, middleware, server listener
 │   ├── lib/
 │   │   └── prisma.js             # Shared PrismaClient singleton
 │   ├── middleware/
+│   │   ├── auth.js               # JWT verification & optional auth middleware
 │   │   └── errorHandler.js       # Centralized error handler & Zod formatter
 │   ├── routes/
+│   │   ├── auth.js               # Signup, login, demo account, and session check
 │   │   ├── voice.js              # POST /api/voice-command orchestration
 │   │   ├── expenses.js           # Full CRUD for expense records
 │   │   ├── tasks.js              # CRUD for tasks & /api/reminders/due
 │   │   ├── summary.js            # Time-period financial aggregates
 │   │   └── demo.js               # Seed & Reset operations
 │   ├── services/
-│   │   ├── ai.js                 # Gemini SDK integration & prompt engineering
+│   │   ├── ai.js                 # Gemini SDK integration & compound action tokenizer
 │   │   ├── actions.js            # Atomic action dispatcher
-│   │   ├── email.js              # Resend API with honest MOCK fallback
+│   │   ├── email.js              # Resend API with labeled mock fallback
 │   │   └── summary.js            # PostgreSQL database aggregation service
 │   └── utils/
-│       └── validation.js         # Zod schemas for all models & actions
+│       └── validation.js         # Flexible Zod schemas with case-normalization
+├── vercel.json                   # Vercel serverless routing configuration
 ├── .env.example
 ├── .env
 └── package.json
@@ -68,46 +74,55 @@ backend/
 
 ## API Endpoints Reference
 
-### 1. Voice Command
+### 1. Authentication (`/api/auth`)
+- **`POST /api/auth/signup`**: Register with `email`, `password`, and `name`. Returns JWT token.
+- **`POST /api/auth/login`**: Authenticate with `email` and `password`. Returns JWT token.
+- **`POST /api/auth/demo`**: 1-Click instant login for the demo user with pre-configured access.
+- **`GET /api/auth/me`**: Get currently authenticated user profile from token.
+
+### 2. Voice Command (`/api/voice-command`)
 - **`POST /api/voice-command`**
   - **Body**: `{ transcript: string, timezone: string, currentDateISO: string, language: string, userEmail?: string }`
   - **Returns**: `{ success: true, actions: Array, results: Array, spokenReply: string, commandId: string }`
+  - Supports compound multi-expense sentences: e.g. *"I spent 350 on Swiggy and 250 on Zomato"*.
 
-### 2. Expenses CRUD
+### 3. Expenses CRUD (`/api/expenses`)
 - **`GET /api/expenses`**: Filter by `category`, `startDate`, `endDate`, `limit`, `offset`.
 - **`POST /api/expenses`**: Create an expense `{ amount, currency, category, note, date }`.
 - **`PATCH /api/expenses/:id`**: Update fields on an existing expense.
 - **`DELETE /api/expenses/:id`**: Permanently remove an expense.
 
-### 3. Tasks & Reminders
+### 4. Tasks & Reminders (`/api/tasks` & `/api/reminders`)
 - **`GET /api/tasks`**: Filter by `type` (`TASK` | `REMINDER`), `completed` (boolean).
-- **`POST /api/tasks`**: Create a task `{ title, type, dueDate }`.
+- **`POST /api/tasks`**: Create a task `{ title, type, dueDate }` (supports flexible date formats and casing).
 - **`PATCH /api/tasks/:id`**: Toggle completion, update due date or title.
 - **`DELETE /api/tasks/:id`**: Delete task.
-- **`GET /api/reminders/due`**: Returns due reminders and marks them `notified: true` to prevent spam.
+- **`GET /api/reminders/due`**: Returns due reminders and marks them `notified: true` to prevent duplicate alerts.
 
-### 4. Summary & Analytics
+### 5. Summary & Analytics (`/api/summary`)
 - **`GET /api/summary?period=today|week|month|all`**: Calculates total sum, transaction count, and category breakdown.
 
-### 5. Demo & Diagnostics
-- **`POST /api/demo/seed`**: Seeds realistic 30-day transactions and tasks.
-- **`DELETE /api/demo/reset`**: Requires `{ confirm: "RESET" }`. Purges all data.
+### 6. Diagnostics & System
+- **`GET /`**: Server status and API identification.
 - **`GET /api/health`**: Uptime and system timestamp.
-- **`GET /api/config/status`**: Powers the frontend Honesty Panel without exposing API secrets.
+- **`GET /api/config/status`**: Checks external integrations (DB, Gemini, Resend) without exposing credentials.
 
 ---
 
 ## Environment Variables
 
+Copy `.env.example` to `.env`:
+
 ```env
-DATABASE_URL=postgresql://user:password@ep-sample-123.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-GEMINI_API_KEY=AIzaSy...
-GEMINI_MODEL=gemini-2.0-flash
-AI_PROVIDER=gemini
-RESEND_API_KEY=
-EMAIL_FROM=onboarding@resend.dev
-DEFAULT_EMAIL_TO=demo@voiceledger.app
+DATABASE_URL="postgresql://user:password@ep-host-pooler.region.aws.neon.tech/neondb?sslmode=require"
+GEMINI_API_KEY="your_gemini_api_key"
+GEMINI_MODEL="gemini-3.8-flash"
+AI_PROVIDER="gemini"
+RESEND_API_KEY="re_your_api_key"
+EMAIL_FROM="onboarding@resend.dev"
+DEFAULT_EMAIL_TO="demo@voiceledger.app"
+JWT_SECRET="voiceledger_super_secret_jwt_key_2026"
 PORT=5000
-CLIENT_URL=http://localhost:5173
-NODE_ENV=development
+CLIENT_URL="http://localhost:5173"
+NODE_ENV="development"
 ```

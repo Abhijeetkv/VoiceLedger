@@ -1,18 +1,42 @@
 # VoiceLedger Frontend Client
 
-The frontend application for **VoiceLedger** is built with React 19, Vite, Tailwind CSS, Lucide React icons, and Recharts. It provides an intuitive, voice-first SaaS dashboard designed with dark navy themes and violet accents.
+The frontend client for **VoiceLedger** is built with React 19, Vite, Tailwind CSS, Lucide Icons, and Recharts. It delivers a fast, responsive, white-themed dashboard with real-time speech capture and speech synthesis feedback.
 
 ---
 
-## UI/UX Design System
+## Architecture and Component Hierarchy
 
-- **Background**: `#0a0d1a` (deepest dark), `#0f1225` (sidebar), `#1a1f3a` (cards).
-- **Accents**: `#8b5cf6` (violet) & `#3b82f6` (blue gradients).
-- **Status Indicators**:
-  - Emerald (`#22c55e`) for saved expenses.
-  - Amber (`#f59e0b`) for scheduled reminders.
-  - Rose (`#ef4444`) for active mic listening & deletions.
-  - Cyan (`#06b6d4`) for analytics queries.
+```mermaid
+graph TD
+    App[App.jsx] --> AuthProvider[AuthContext]
+    AuthProvider --> ToastProvider[ToastContext]
+    ToastProvider --> Router[React Router]
+    
+    subgraph Routes
+        Router --> AuthPage[/auth - Minimalist Auth]
+        Router --> Layout[Layout.jsx]
+        
+        Layout --> Sidebar[Sidebar.jsx Navigation]
+        Layout --> Dashboard[/ - Overview & Analytics]
+        Layout --> Assistant[/assistant - AI Voice Assistant]
+        Layout --> Expenses[/expenses - Expense Tracker]
+        Layout --> Tasks[/tasks - Tasks & Reminders]
+    end
+    
+    subgraph Core Features
+        Dashboard --> Recharts[Category Spending BarChart]
+        Dashboard --> StatCards[StatCard.jsx Metrics]
+        
+        Assistant --> MicBtn[MicButton.jsx Web Speech API]
+        Assistant --> Waveform[WaveformAnimation.jsx Audio Bars]
+        
+        Expenses --> ExpForm[ExpenseForm.jsx Modal]
+        Expenses --> CatBadge[CategoryBadge.jsx Color Pills]
+        
+        Tasks --> ConfirmDlg[ConfirmDialog.jsx Modal]
+        AuthPage --> MaskedInput[Secure Bullet Masking]
+    end
+```
 
 ---
 
@@ -20,62 +44,66 @@ The frontend application for **VoiceLedger** is built with React 19, Vite, Tailw
 
 ```
 frontend/
+├── public/                       # Static public assets
 ├── src/
-│   ├── main.jsx                  # Entry point with BrowserRouter
-│   ├── App.jsx                   # Layout wrap & route definitions
-│   ├── index.css                 # Custom waveform keyframes & scrollbars
-│   ├── components/
-│   │   ├── MicButton.jsx         # Large animated multi-state microphone
-│   │   ├── WaveformAnimation.jsx # Live listening audio bar animation
-│   │   ├── StatCard.jsx          # Glass-morphic metric card
-│   │   ├── CategoryBadge.jsx     # Distinct colored category tags
-│   │   ├── ExpenseForm.jsx       # Modal for manual add / edit
-│   │   ├── ConfirmDialog.jsx     # Reusable action confirmation modal
-│   │   ├── Sidebar.jsx           # Responsive desktop & mobile navigation
-│   │   ├── Layout.jsx            # Layout scaffold
-│   │   └── Toast.jsx             # Toast notification renderer
+│   ├── components/               # Reusable UI components
+│   │   ├── CategoryBadge.jsx     # High-contrast pastel category badges
+│   │   ├── ConfirmDialog.jsx     # Action confirmation modal
+│   │   ├── ExpenseForm.jsx       # Modal for adding and editing expenses
+│   │   ├── Layout.jsx            # App scaffold with responsive sidebar
+│   │   ├── MicButton.jsx         # Animated microphone button
+│   │   ├── Sidebar.jsx           # Clean white sidebar with auth profile
+│   │   ├── StatCard.jsx          # Metric cards with subtle borders
+│   │   ├── Toast.jsx             # Floating notification cards
+│   │   └── WaveformAnimation.jsx # Audio frequency wave simulation
 │   ├── context/
-│   │   └── ToastContext.jsx      # Global toast management
+│   │   ├── AuthContext.jsx       # JWT auth provider (login, signup, demo, logout)
+│   │   └── ToastContext.jsx      # Safe toast notifications with string extraction
 │   ├── hooks/
-│   │   └── useVoice.js           # Browser SpeechRecognition & SpeechSynthesis hook
+│   │   └── useVoice.js           # Web Speech API (Recognition + SpeechSynthesis)
 │   ├── pages/
-│   │   ├── Dashboard.jsx         # Overview metrics, charts & Quick Voice
-│   │   ├── Assistant.jsx         # Dedicated Hero Voice Engine with history
-│   │   ├── Expenses.jsx          # Full expense ledger with filters
-│   │   ├── Tasks.jsx             # Tasks & Reminders with 30s polling
-│   │   └── Settings.jsx          # Honesty Panel & Demo Seed controls
-│   └── services/
-│       └── api.js                # Axios client targeting backend /api routes
-├── index.html
-├── vite.config.js                # Local proxy to port 5000
-├── tailwind.config.js
+│   │   ├── Assistant.jsx         # Live voice assistant & conversational chat
+│   │   ├── Auth.jsx              # Minimalist sign in, sign up & 1-click demo
+│   │   ├── Dashboard.jsx         # Spending overview, stats & Recharts graphs
+│   │   ├── Expenses.jsx          # Expense management with filters & pagination
+│   │   └── Tasks.jsx             # Tasks & reminders with optimistic toggling
+│   ├── services/
+│   │   └── api.js                # Axios client with flexible Vercel backend URLs
+│   ├── App.jsx                   # Route declarations & route guards
+│   ├── index.css                 # Clean white design tokens & CSS animations
+│   └── main.jsx                  # React 19 application entry point
+├── vercel.json                   # Client-side SPA routing rewrites
+├── vite.config.js                # Vite build settings & local /api proxy
+├── .env.example
+├── .env
 └── package.json
 ```
 
 ---
 
-## The Voice Interface State Machine
+## Key Features
 
-The voice interface (`useVoice.js`) handles 5 reactive states:
-
-1. **`idle`**: Purple gradient mic with subtle breathing pulse. Ready for interaction.
-2. **`listening`**: Red animated concentric rings with audio waveform bars. Transcribes speech in real-time.
-3. **`thinking`**: Cyan spinner indicates backend Gemini processing & database transaction.
-4. **`speaking`**: Green pulsing indicator as the browser speaks the confirmation aloud. (Microphone is automatically muted to prevent acoustic feedback).
-5. **`error`**: Clear visual error feedback with 1-click retry.
-
----
-
-## Multilingual Voice Support
-
-- **English (India) (`en-IN`)**: Understands colloquial Indian financial phrasing ("Spent 250 rupees on auto", "Canteen lunch", "Recharge bill").
-- **Hindi (India) (`hi-IN`)**: Full speech recognition and spoken feedback in Hindi ("दोपहर के खाने पर 250 रुपये खर्च किए").
+1. **Clean White SaaS Design**:
+   - Polished white surfaces (`#ffffff`), subtle borders (`slate-200/90`), and violet accent actions.
+   - Zero emojis across all components and documentation.
+2. **Web Speech API Voice Capture**:
+   - Captures speech in real-time in English (`en-IN`) and Hindi (`hi-IN`).
+   - Mutes speech synthesis while listening to prevent feedback loops.
+3. **Conversational Feedback**:
+   - Synthesizes spoken replies directly back to the user upon transaction completion.
+4. **Resilient API Architecture**:
+   - `api.js` automatically resolves backend URLs across `VITE_API_URL`, `VITE_BACKEND_URL`, and local proxies.
+5. **Vercel SPA Routing**:
+   - `vercel.json` rewrites all sub-routes to `/index.html` so direct link sharing and browser reloads work without 404s.
 
 ---
 
-## Proactive Reminder Polling
+## Environment Variables
 
-The `Tasks.jsx` page mounts a 30-second polling interval against `/api/reminders/due`. When a scheduled reminder reaches its due timestamp, the app:
-1. Shows an immediate toast notification.
-2. Triggers the browser `Notification` API (if permission is granted).
-3. The backend marks the reminder as `notified: true` in PostgreSQL to prevent duplicate alerts.
+Copy `.env.example` to `.env`:
+
+```env
+# URL of your deployed backend on Vercel (e.g. https://your-backend.vercel.app)
+# Leave empty in local development to use the Vite proxy (http://localhost:5000)
+VITE_API_URL=
+```
