@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExpenseCategory {
+  Food
+  Transport
+  Shopping
+  Bills
+  Health
+  Entertainment
+  Education
+  Other
+}
+
+enum TaskType {
+  TASK
+  REMINDER
+}
+
+model Expense {
+  id        String          @id @default(cuid())
+  amount    Decimal         @db.Decimal(12, 2)
+  currency  String          @default("INR")
+  category  ExpenseCategory @default(Other)
+  note      String          @default("")
+  date      DateTime        @default(now())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([date])
+  @@index([category])
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  type      TaskType @default(TASK)
+  dueDate   DateTime?
+  completed Boolean  @default(false)
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dueDate])
+  @@index([type])
+  @@index([completed])
+}
+
+model CommandHistory {
+  id          String   @id @default(cuid())
+  transcript  String
+  spokenReply String
+  actions     Json
+  results     Json
+  createdAt   DateTime @default(now())
+}
+
