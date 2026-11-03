@@ -20,6 +20,7 @@ async function executeAction(action, context = {}) {
     case 'ADD_EXPENSE':
       return prisma.expense.create({
         data: {
+          userId: context.userId || null,
           amount: action.amount,
           currency: action.currency || 'INR',
           category: action.category || 'Other',
@@ -30,6 +31,7 @@ async function executeAction(action, context = {}) {
     case 'ADD_REMINDER':
       return prisma.task.create({
         data: {
+          userId: context.userId || null,
           title: action.title,
           type: 'REMINDER',
           dueDate: action.dueDate ? new Date(action.dueDate) : null,
@@ -38,6 +40,7 @@ async function executeAction(action, context = {}) {
     case 'ADD_TASK':
       return prisma.task.create({
         data: {
+          userId: context.userId || null,
           title: action.title,
           type: 'TASK',
           dueDate: action.dueDate ? new Date(action.dueDate) : null,

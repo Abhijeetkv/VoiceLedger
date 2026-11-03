@@ -8,6 +8,7 @@ import tasksRouter, { remindersRouter } from './routes/tasks.js';
 import voiceRouter from './routes/voice.js';
 import summaryRouter from './routes/summary.js';
 import demoRouter from './routes/demo.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,6 +43,7 @@ app.get('/api/config/status', (req, res) => {
 });
 
 // --- Route Mounts ---
+app.use('/api/auth', authRouter);
 app.use('/api/expenses', expensesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/reminders', remindersRouter);

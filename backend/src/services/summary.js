@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma.js';
 
-export async function getSummary(period = 'today', category = null) {
+export async function getSummary(period = 'today', category = null, userId = null) {
   const now = new Date();
   let startDate;
 
@@ -22,6 +22,9 @@ export async function getSummary(period = 'today', category = null) {
 
   const where = { date: { gte: startDate } };
   if (category) where.category = category;
+  if (userId) {
+    where.OR = [{ userId }, { userId: null }];
+  }
 
   const expenses = await prisma.expense.findMany({ where, orderBy: { date: 'desc' } });
 

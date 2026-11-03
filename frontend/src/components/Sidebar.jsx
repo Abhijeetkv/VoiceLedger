@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Wallet,
@@ -6,7 +6,11 @@ import {
   Mic,
   X,
   AudioWaveform,
+  LogOut,
+  User,
+  LogIn,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const navItems = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -17,6 +21,14 @@ const navItems = [
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+    if (onClose) onClose();
+  };
 
   return (
     <>
@@ -79,9 +91,41 @@ export default function Sidebar({ isOpen, onClose }) {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/5">
-          <p className="text-xs text-gray-600 text-center">v1.0.0 · Built with AI</p>
+        {/* User Profile & Auth Footer */}
+        <div className="p-3 border-t border-white/5 bg-white/[0.01]">
+          {isAuthenticated ? (
+            <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-violet-600/30 text-violet-300 font-bold flex items-center justify-center text-xs shrink-0">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-white truncate leading-tight">
+                    {user?.name || 'User'}
+                  </p>
+                  <p className="text-[10px] text-gray-400 truncate">
+                    {user?.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Log Out"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <NavLink
+              to="/auth"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In / Demo</span>
+            </NavLink>
+          )}
         </div>
       </aside>
     </>

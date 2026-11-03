@@ -4,8 +4,10 @@ import { voiceCommandSchema } from '../utils/validation.js';
 import { processVoiceCommand } from '../services/ai.js';
 import { executeActions } from '../services/actions.js';
 import { getSummary } from '../services/summary.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(optionalAuth);
 
 /**
  * POST /api/voice-command
@@ -17,6 +19,7 @@ router.post('/', async (req, res, next) => {
     const { transcript, timezone, currentDateISO, language, userEmail } = voiceCommandSchema.parse(req.body);
 
     const dateISO = currentDateISO || new Date().toISOString();
+    const resolvedEmail = userEmail || req.user?.email;
 
     // 2. Call AI to process the transcript
     const aiResult = await processVoiceCommand({
@@ -31,7 +34,7 @@ router.post('/', async (req, res, next) => {
 
     // 3. Execute actions if present
     if (actions.length > 0) {
-      results = await executeActions(actions, { userEmail });
+      results = await executeActions(actions, { userEmail: resolvedEmail, userId: req.user?.id });
     }
 
     // 4. If QUERY_SUMMARY was requested, build a spoken reply from the actual data
@@ -55,6 +58,7 @@ router.post('/', async (req, res, next) => {
     // 5. Save to CommandHistory
     const command = await prisma.commandHistory.create({
       data: {
+        userId: req.user?.id || null,
         transcript,
         spokenReply: spokenReply || '',
         actions,

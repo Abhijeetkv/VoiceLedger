@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import { createExpenseSchema, updateExpenseSchema, EXPENSE_CATEGORIES } from '../utils/validation.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(optionalAuth);
 
 /**
  * GET /api/expenses
@@ -13,6 +15,10 @@ router.get('/', async (req, res, next) => {
     const { category, startDate, endDate, limit, offset } = req.query;
 
     const where = {};
+
+    if (req.user?.id) {
+      where.OR = [{ userId: req.user.id }, { userId: null }];
+    }
 
     if (category) {
       if (!EXPENSE_CATEGORIES.includes(category)) {
@@ -52,6 +58,7 @@ router.post('/', async (req, res, next) => {
 
     const expense = await prisma.expense.create({
       data: {
+        userId: req.user?.id || null,
         amount: data.amount,
         currency: data.currency,
         category: data.category,

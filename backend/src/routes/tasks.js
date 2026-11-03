@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import { createTaskSchema, updateTaskSchema } from '../utils/validation.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(optionalAuth);
 
 /**
  * GET /api/tasks
@@ -13,6 +15,10 @@ router.get('/', async (req, res, next) => {
     const { type, completed } = req.query;
 
     const where = {};
+
+    if (req.user?.id) {
+      where.OR = [{ userId: req.user.id }, { userId: null }];
+    }
 
     if (type) {
       const normalizedType = type.toUpperCase();
@@ -47,6 +53,7 @@ router.post('/', async (req, res, next) => {
 
     const task = await prisma.task.create({
       data: {
+        userId: req.user?.id || null,
         title: data.title,
         type: data.type,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,

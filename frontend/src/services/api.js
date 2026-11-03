@@ -5,6 +5,21 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Attach JWT token to requests if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('voiceledger_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Authentication
+export const login = (data) => api.post('/auth/login', data);
+export const signup = (data) => api.post('/auth/signup', data);
+export const loginDemo = () => api.post('/auth/demo');
+export const getMe = () => api.get('/auth/me');
+
 // Expenses
 export const getExpenses = (params) => api.get('/expenses', { params });
 export const createExpense = (data) => api.post('/expenses', data);
