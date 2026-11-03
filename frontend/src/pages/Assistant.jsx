@@ -146,42 +146,42 @@ export default function Assistant() {
     switch (action.type) {
       case 'ADD_EXPENSE':
         return (
-          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
             <IndianRupee className="w-3.5 h-3.5" />
             <span>₹{action.amount} ({action.category})</span>
           </div>
         );
       case 'ADD_REMINDER':
         return (
-          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
             <Calendar className="w-3.5 h-3.5" />
             <span>Reminder: {action.title}</span>
           </div>
         );
       case 'ADD_TASK':
         return (
-          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
             <CheckSquare className="w-3.5 h-3.5" />
             <span>Task: {action.title}</span>
           </div>
         );
       case 'SEND_EMAIL':
         return (
-          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20">
+          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
             <Mail className="w-3.5 h-3.5" />
             <span>Email {result?.data?.mock ? '(Mock)' : 'Sent'}</span>
           </div>
         );
       case 'DELETE_LAST':
         return (
-          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
             <Trash2 className="w-3.5 h-3.5" />
             <span>Deleted Expense</span>
           </div>
         );
       case 'QUERY_SUMMARY':
         return (
-          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          <div key={Math.random()} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-cyan-50 text-cyan-800 border border-cyan-200">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Spending Summary ({action.period})</span>
           </div>
@@ -197,25 +197,25 @@ export default function Assistant() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">AI Voice Assistant</h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">AI Voice Assistant</h1>
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-violet-50 text-violet-700 border border-violet-200">
               Live Engine
             </span>
           </div>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Speak naturally to log expenses, create tasks, set reminders, and query analytics.
           </p>
         </div>
 
         {/* Language selector */}
-        <div className="flex items-center gap-2 self-start sm:self-auto bg-[#1a1f3a]/80 p-1 rounded-xl border border-white/5">
+        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             type="button"
             onClick={() => voice.setLanguage('en-IN')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               voice.language === 'en-IN'
-                ? 'bg-violet-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-white text-violet-700 shadow-xs font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             English (India)
@@ -225,8 +225,8 @@ export default function Assistant() {
             onClick={() => voice.setLanguage('hi-IN')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               voice.language === 'hi-IN'
-                ? 'bg-violet-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-white text-violet-700 shadow-xs font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Hindi (हिंदी)
@@ -236,11 +236,11 @@ export default function Assistant() {
 
       {/* Browser Speech API Warning if unsupported */}
       {!voice.isSupported && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-semibold text-amber-300">Speech Recognition Not Supported in this Browser</p>
-            <p className="text-amber-400/80 mt-0.5">
+            <p className="font-semibold text-amber-900">Speech Recognition Not Supported in this Browser</p>
+            <p className="text-amber-700 mt-0.5">
               Please use <strong>Google Chrome</strong> or Microsoft Edge for the best experience with the Web Speech API. You can still use the text input below!
             </p>
           </div>
@@ -248,8 +248,8 @@ export default function Assistant() {
       )}
 
       {/* Hero Voice Center */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-[#1a1f3a]/80 to-[#0f1225]/90 border border-white/10 rounded-3xl p-8 sm:p-12 text-center backdrop-blur-xl shadow-2xl">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-12 text-center shadow-xs">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-100/40 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col items-center justify-center">
           <MicButton
@@ -263,33 +263,33 @@ export default function Assistant() {
             {voice.state === 'listening' ? (
               <div className="space-y-2">
                 <WaveformAnimation />
-                <p className="text-sm font-medium text-red-400 animate-pulse">
+                <p className="text-sm font-semibold text-rose-600 animate-pulse">
                   Listening... Click again or pause when finished
                 </p>
               </div>
             ) : voice.state === 'thinking' ? (
-              <div className="flex items-center gap-2 text-cyan-400 text-sm">
+              <div className="flex items-center gap-2 text-violet-700 text-sm font-medium">
                 <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>AI is extracting actions and updating database...</span>
               </div>
             ) : voice.state === 'speaking' ? (
-              <div className="flex items-center gap-2 text-emerald-400 text-sm">
+              <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium">
                 <Volume2 className="w-4 h-4 animate-bounce" />
                 <span>Speaking reply... Click mic to stop</span>
               </div>
             ) : voice.state === 'error' ? (
-              <p className="text-sm text-red-400 font-medium">
+              <p className="text-sm text-rose-600 font-medium">
                 {voice.error || 'Error occurred. Tap to retry.'}
               </p>
             ) : (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-slate-500 font-medium">
                 Click microphone and speak your expenses or tasks
               </p>
             )}
 
             {/* Live interim transcript display */}
             {voice.transcript && (
-              <div className="mt-3 px-4 py-2 bg-white/5 rounded-full border border-white/10 max-w-xl text-sm text-white font-medium shadow-inner animate-fade-in">
+              <div className="mt-3 px-4 py-2 bg-slate-50 rounded-full border border-slate-200 max-w-xl text-sm text-slate-800 font-medium shadow-xs animate-fade-in">
                 "{voice.transcript}"
               </div>
             )}
@@ -299,7 +299,7 @@ export default function Assistant() {
 
       {/* Suggested Quick Prompts */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2.5 px-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2.5 px-1">
           Demo Voice Commands (Click to test)
         </p>
         <div className="flex flex-wrap gap-2">
@@ -309,20 +309,20 @@ export default function Assistant() {
               type="button"
               onClick={() => executeCommand(cmd)}
               disabled={isProcessing}
-              className="text-xs text-left px-3 py-2 rounded-xl bg-[#1a1f3a]/60 hover:bg-[#1a1f3a] text-gray-300 hover:text-white border border-white/5 hover:border-violet-500/30 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="text-xs text-left px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-violet-300 transition-all flex items-center gap-2 disabled:opacity-50 shadow-2xs font-medium"
             >
               <span>"{cmd}"</span>
-              <ArrowRight className="w-3 h-3 text-violet-400 shrink-0" />
+              <ArrowRight className="w-3 h-3 text-violet-600 shrink-0" />
             </button>
           ))}
         </div>
       </div>
 
       {/* Conversation History */}
-      <div className="bg-[#1a1f3a]/40 border border-white/5 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-violet-400" />
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-600" />
             Voice Command Activity
           </h2>
           {history.length > 0 && (
@@ -332,7 +332,7 @@ export default function Assistant() {
                 setHistory([]);
                 localStorage.removeItem('voiceledger_history');
               }}
-              className="text-xs text-gray-400 hover:text-rose-400 transition-colors"
+              className="text-xs text-slate-400 hover:text-rose-600 font-medium transition-colors"
             >
               Clear Log
             </button>
@@ -340,7 +340,7 @@ export default function Assistant() {
         </div>
 
         {history.length === 0 ? (
-          <div className="py-10 text-center text-gray-500 text-sm">
+          <div className="py-10 text-center text-slate-400 text-sm">
             No commands yet. Use the microphone or try one of the suggestions above.
           </div>
         ) : (
@@ -355,22 +355,24 @@ export default function Assistant() {
                 <div
                   className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3.5 text-sm ${
                     msg.role === 'user'
-                      ? 'bg-violet-600 text-white rounded-br-sm'
+                      ? 'bg-violet-600 text-white rounded-br-xs shadow-xs'
                       : msg.isError
-                      ? 'bg-rose-950/40 text-rose-200 border border-rose-500/30 rounded-bl-sm'
-                      : 'bg-[#0f1225] text-gray-200 border border-white/10 rounded-bl-sm'
+                      ? 'bg-rose-50 text-rose-900 border border-rose-200 rounded-bl-xs'
+                      : 'bg-slate-50 text-slate-800 border border-slate-200 rounded-bl-xs shadow-2xs'
                   }`}
                 >
                   <p className="leading-relaxed">{msg.text}</p>
 
                   {/* Actions summary badges if available */}
                   {msg.actions && msg.actions.length > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap gap-1.5">
+                    <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex flex-wrap gap-1.5">
                       {msg.actions.map((act, idx) => getActionBadge(act, msg.results?.[idx]))}
                     </div>
                   )}
 
-                  <span className="block text-[10px] text-gray-400/80 mt-1.5 text-right">
+                  <span className={`block text-[10px] mt-1.5 text-right ${
+                    msg.role === 'user' ? 'text-violet-200' : 'text-slate-400'
+                  }`}>
                     {msg.timestamp}
                   </span>
                 </div>
@@ -389,13 +391,13 @@ export default function Assistant() {
           onChange={(e) => setTextInput(e.target.value)}
           placeholder="Or type a command here... (e.g. 'Spent 500 on dinner')"
           disabled={isProcessing}
-          className="w-full bg-[#1a1f3a]/90 text-white placeholder-gray-500 text-sm rounded-2xl pl-4 pr-24 py-3.5 border border-white/10 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all disabled:opacity-50"
+          className="w-full bg-white text-slate-900 placeholder-slate-400 text-sm rounded-2xl pl-4 pr-24 py-3.5 border border-slate-200 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/10 shadow-xs transition-all disabled:opacity-50"
         />
         <div className="absolute right-2 flex items-center gap-1.5">
           <button
             type="submit"
             disabled={!textInput.trim() || isProcessing}
-            className="p-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white transition-all shadow-md"
+            className="p-2 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white transition-all shadow-xs"
             title="Send"
           >
             <Send className="w-4 h-4" />

@@ -15,15 +15,15 @@ function getDueBadge(dueDate) {
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) {
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 font-medium">Overdue</span>;
+    return <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-medium">Overdue</span>;
   }
   if (diffDays === 0) {
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 font-medium">Due today</span>;
+    return <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-medium">Due today</span>;
   }
   if (diffDays <= 3) {
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 font-medium">In {diffDays}d</span>;
+    return <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">In {diffDays}d</span>;
   }
-  return <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 font-medium">In {diffDays}d</span>;
+  return <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">In {diffDays}d</span>;
 }
 
 export default function Tasks() {
@@ -134,25 +134,25 @@ export default function Tasks() {
   };
 
   const renderAddForm = (type) => (
-    <div className="flex flex-col sm:flex-row gap-2 mt-3 p-3 bg-white/[0.03] rounded-xl border border-white/5">
+    <div className="flex flex-col sm:flex-row gap-2 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
       <input
         type="text"
         value={newItem.title}
         onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
         placeholder={type === 'task' ? 'What needs to be done?' : 'Remind me to...'}
-        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
+        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/10 transition-all"
         onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(type); }}
       />
       <input
         type="datetime-local"
         value={newItem.dueDate}
         onChange={(e) => setNewItem({ ...newItem, dueDate: e.target.value })}
-        className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
+        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/10 transition-all"
       />
       <button
         onClick={() => handleAdd(type)}
         disabled={submitting}
-        className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white text-sm font-medium transition-all disabled:opacity-50 whitespace-nowrap"
+        className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-all disabled:opacity-50 whitespace-nowrap shadow-xs"
       >
         {submitting ? 'Adding...' : 'Add'}
       </button>
@@ -160,13 +160,13 @@ export default function Tasks() {
   );
 
   const renderList = (items, type) => (
-    <div className="space-y-1">
+    <div className="space-y-1 divide-y divide-slate-100">
       {items.length > 0 ? (
         items.map((item) => (
           <div
             key={item._id || item.id}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.02] transition-colors group ${
-              item.completed ? 'opacity-50' : ''
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors group ${
+              item.completed ? 'opacity-60' : ''
             }`}
           >
             <button
@@ -174,17 +174,17 @@ export default function Tasks() {
               className="flex-shrink-0 transition-colors"
             >
               {item.completed ? (
-                <CheckCircle className="w-5 h-5 text-green-400" />
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
               ) : (
-                <Circle className="w-5 h-5 text-gray-600 hover:text-violet-400" />
+                <Circle className="w-5 h-5 text-slate-300 hover:text-violet-600" />
               )}
             </button>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm ${item.completed ? 'line-through text-gray-500' : 'text-white'}`}>
+              <p className={`text-sm ${item.completed ? 'line-through text-slate-400' : 'text-slate-900 font-medium'}`}>
                 {item.title}
               </p>
               {item.dueDate && (
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   {new Date(item.dueDate).toLocaleString('en-IN', {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
@@ -194,20 +194,20 @@ export default function Tasks() {
             {!item.completed && getDueBadge(item.dueDate)}
             <button
               onClick={() => setDeleteTarget(item)}
-              className="flex-shrink-0 p-1 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+              className="flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
             >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         ))
       ) : (
-        <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+        <div className="flex flex-col items-center justify-center py-10 text-slate-400">
           {type === 'task' ? (
-            <ListTodo className="w-8 h-8 mb-2 text-gray-600" />
+            <ListTodo className="w-8 h-8 mb-2 text-slate-300" />
           ) : (
-            <Bell className="w-8 h-8 mb-2 text-gray-600" />
+            <Bell className="w-8 h-8 mb-2 text-slate-300" />
           )}
-          <p className="text-sm">No {type}s yet</p>
+          <p className="text-sm font-medium">No {type}s yet</p>
         </div>
       )}
     </div>
@@ -216,7 +216,7 @@ export default function Tasks() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
       </div>
     );
   }
@@ -224,24 +224,24 @@ export default function Tasks() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Tasks & Reminders</h1>
-        <p className="text-gray-500 text-sm">Manage your to-dos and set reminders</p>
+        <h1 className="text-2xl font-bold text-slate-900">Tasks & Reminders</h1>
+        <p className="text-slate-500 text-sm">Manage your to-dos and set reminders</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tasks */}
-        <div className="bg-[#1a1f3a]/60 backdrop-blur-sm border border-white/5 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <ListTodo className="w-5 h-5 text-violet-400" />
-              <h2 className="text-lg font-semibold text-white">Tasks</h2>
-              <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+              <ListTodo className="w-5 h-5 text-violet-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Tasks</h2>
+              <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
                 {tasks.filter((t) => !t.completed).length} active
               </span>
             </div>
             <button
               onClick={() => { setShowAddTask(!showAddTask); setShowAddReminder(false); setNewItem({ title: '', dueDate: '' }); }}
-              className="flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+              className="flex items-center gap-1 text-sm font-semibold text-violet-600 hover:text-violet-700 transition-colors"
             >
               <Plus className="w-4 h-4" /> Add
             </button>
@@ -251,18 +251,18 @@ export default function Tasks() {
         </div>
 
         {/* Reminders */}
-        <div className="bg-[#1a1f3a]/60 backdrop-blur-sm border border-white/5 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <CalendarClock className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg font-semibold text-white">Reminders</h2>
-              <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+              <CalendarClock className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-slate-900">Reminders</h2>
+              <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
                 {reminders.filter((r) => !r.completed).length} active
               </span>
             </div>
             <button
               onClick={() => { setShowAddReminder(!showAddReminder); setShowAddTask(false); setNewItem({ title: '', dueDate: '' }); }}
-              className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4" /> Add
             </button>

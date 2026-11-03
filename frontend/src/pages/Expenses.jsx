@@ -106,62 +106,62 @@ export default function Expenses() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Expenses</h1>
-          <p className="text-gray-500 text-sm">Track and manage your spending</p>
+          <h1 className="text-2xl font-bold text-slate-900">Expenses</h1>
+          <p className="text-slate-500 text-sm">Track and manage your spending</p>
         </div>
         <button
           onClick={() => { setEditingExpense(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-medium transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-medium transition-all shadow-xs"
         >
           <Plus className="w-4 h-4" /> Add Expense
         </button>
       </div>
 
       {/* Filters */}
-      <div className="bg-[#1a1f3a]/60 backdrop-blur-sm border border-white/5 rounded-2xl p-4">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search expenses..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
+              className="w-full bg-slate-50/70 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-600 focus:bg-white transition-all"
             />
           </div>
           <select
             value={filters.category}
             onChange={(e) => { setFilters({ ...filters, category: e.target.value }); setPage(0); }}
-            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 capitalize"
+            className="bg-slate-50/70 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-600 focus:bg-white capitalize transition-all"
           >
-            <option value="" className="bg-[#1a1f3a]">All Categories</option>
+            <option value="" className="bg-white text-slate-900">All Categories</option>
             {categories.filter(Boolean).map((c) => (
-              <option key={c} value={c} className="bg-[#1a1f3a] capitalize">{c}</option>
+              <option key={c} value={c} className="bg-white text-slate-900 capitalize">{c}</option>
             ))}
           </select>
           <input
             type="date"
             value={filters.startDate}
             onChange={(e) => { setFilters({ ...filters, startDate: e.target.value }); setPage(0); }}
-            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
+            className="bg-slate-50/70 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-600 focus:bg-white transition-all"
             placeholder="Start date"
           />
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => { setFilters({ ...filters, endDate: e.target.value }); setPage(0); }}
-            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
+            className="bg-slate-50/70 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-600 focus:bg-white transition-all"
             placeholder="End date"
           />
         </div>
       </div>
 
       {/* Expense List */}
-      <div className="bg-[#1a1f3a]/60 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-6 h-6 text-violet-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
           </div>
         ) : filteredExpenses.length > 0 ? (
           <>
@@ -169,41 +169,43 @@ export default function Expenses() {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Date</th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Note</th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Category</th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Amount</th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Actions</th>
+                  <tr className="bg-slate-50/80 border-b border-slate-200">
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-3.5">Date</th>
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-3.5">Note</th>
+                    <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-3.5">Category</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-3.5">Amount</th>
+                    <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-3.5">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {filteredExpenses.map((exp) => (
                     <tr
                       key={exp._id || exp.id}
-                      className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors"
+                      className="hover:bg-slate-50/70 transition-colors"
                     >
-                      <td className="px-6 py-3 text-sm text-gray-400 whitespace-nowrap">
+                      <td className="px-6 py-3.5 text-sm text-slate-500 whitespace-nowrap">
                         {new Date(exp.date).toLocaleDateString('en-IN', {
                           year: 'numeric', month: 'short', day: 'numeric',
                         })}
                       </td>
-                      <td className="px-6 py-3 text-sm text-white">{exp.note || '—'}</td>
-                      <td className="px-6 py-3"><CategoryBadge category={exp.category} /></td>
-                      <td className="px-6 py-3 text-sm font-semibold text-white text-right">
+                      <td className="px-6 py-3.5 text-sm text-slate-900 font-medium">{exp.note || '—'}</td>
+                      <td className="px-6 py-3.5"><CategoryBadge category={exp.category} /></td>
+                      <td className="px-6 py-3.5 text-sm font-bold text-slate-900 text-right">
                         {formatCurrency(exp.amount)}
                       </td>
-                      <td className="px-6 py-3 text-right">
+                      <td className="px-6 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => { setEditingExpense(exp); setShowForm(true); }}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-violet-400 hover:bg-violet-500/10 transition-all"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                            title="Edit"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(exp)}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                            title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -216,29 +218,29 @@ export default function Expenses() {
             </div>
 
             {/* Mobile list */}
-            <div className="sm:hidden divide-y divide-white/5">
+            <div className="sm:hidden divide-y divide-slate-100">
               {filteredExpenses.map((exp) => (
-                <div key={exp._id || exp.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div key={exp._id || exp.id} className="px-4 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/60">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate">{exp.note || '—'}</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">{exp.note || '—'}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <CategoryBadge category={exp.category} />
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-slate-500">
                         {new Date(exp.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{formatCurrency(exp.amount)}</p>
+                    <p className="text-sm font-bold text-slate-900">{formatCurrency(exp.amount)}</p>
                     <button
                       onClick={() => { setEditingExpense(exp); setShowForm(true); }}
-                      className="p-1.5 text-gray-500 hover:text-violet-400"
+                      className="p-1.5 text-slate-400 hover:text-violet-600"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteTarget(exp)}
-                      className="p-1.5 text-gray-500 hover:text-red-400"
+                      className="p-1.5 text-slate-400 hover:text-rose-600"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -248,25 +250,25 @@ export default function Expenses() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-6 py-3 border-t border-white/5">
-              <p className="text-xs text-gray-500">
+            <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-200 bg-slate-50/50">
+              <p className="text-xs text-slate-500 font-medium">
                 Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount}
               </p>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setPage(Math.max(0, page - 1))}
                   disabled={page === 0}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-2xs"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-sm text-gray-400 px-2">
+                <span className="text-xs font-semibold text-slate-700 px-2">
                   {page + 1} / {totalPages}
                 </span>
                 <button
                   onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                   disabled={page >= totalPages - 1}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-2xs"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -275,11 +277,11 @@ export default function Expenses() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <ReceiptText className="w-10 h-10 text-gray-600" />
-            <p className="text-gray-500 text-sm">No expenses found</p>
+            <ReceiptText className="w-10 h-10 text-slate-300" />
+            <p className="text-slate-500 text-sm font-medium">No expenses found</p>
             <button
               onClick={() => { setEditingExpense(null); setShowForm(true); }}
-              className="text-sm text-violet-400 hover:text-violet-300"
+              className="text-sm font-semibold text-violet-600 hover:text-violet-700"
             >
               Add your first expense
             </button>
