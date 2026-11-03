@@ -34,6 +34,7 @@ export default function Assistant() {
   });
 
   const chatBottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -43,9 +44,21 @@ export default function Assistant() {
     }
   }, [history]);
 
+  // Only scroll after AI responds, never while user is talking to the assistant
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history, voice.transcript]);
+    if (history.length === 0) return;
+    const lastItem = history[history.length - 1];
+
+    if (lastItem?.role === 'assistant') {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [history]);
 
   // When speech recognition ends and we have a transcript in listening mode
   const handleMicClick = () => {
@@ -366,7 +379,7 @@ export default function Assistant() {
             No commands yet. Use the microphone or try one of the suggestions above.
           </div>
         ) : (
-          <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+          <div ref={chatContainerRef} className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
             {history.map((msg) => (
               <div
                 key={msg.id}
