@@ -5,8 +5,28 @@ export function useVoice() {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState('en-IN');
+  const [isMuted, setIsMuted] = useState(() => {
+    try {
+      return localStorage.getItem('voiceledger_muted') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const recognitionRef = useRef(null);
-  const synthRef = useRef(window.speechSynthesis);
+  const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('voiceledger_muted', String(next));
+      } catch (e) {}
+      if (next && synthRef.current) {
+        synthRef.current.cancel();
+      }
+      return next;
+    });
+  }, []);
 
   const isSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
@@ -71,7 +91,11 @@ export function useVoice() {
 
   const speak = useCallback((text) => {
     return new Promise((resolve) => {
-      if (!text) { resolve(); return; }
+      if (!text || isMuted || !synthRef.current) {
+        setState('idle');
+        resolve();
+        return;
+      }
 
       synthRef.current.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -91,10 +115,12 @@ export function useVoice() {
       setState('speaking');
       synthRef.current.speak(utterance);
     });
-  }, [language]);
+  }, [language, isMuted]);
 
   const stopSpeaking = useCallback(() => {
-    synthRef.current.cancel();
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
     setState('idle');
   }, []);
 
@@ -108,7 +134,7 @@ export function useVoice() {
 
   return {
     state, setState, transcript, setTranscript, error, setError,
-    language, setLanguage, isSupported,
+    language, setLanguage, isSupported, isMuted, toggleMute,
     startListening, stopListening, speak, stopSpeaking, reset,
   };
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Mic, Send, Sparkles, AlertCircle, RefreshCw, Volume2,
+  Mic, Send, Sparkles, AlertCircle, RefreshCw, Volume2, VolumeX,
   CheckCircle2, AlertTriangle, ArrowRight, CornerDownLeft,
   Calendar, CheckSquare, IndianRupee, Mail, Trash2, HelpCircle
 } from 'lucide-react';
@@ -207,30 +207,46 @@ export default function Assistant() {
           </p>
         </div>
 
-        {/* Language selector */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-100 p-1 rounded-xl border border-slate-200">
+        {/* Controls: Audio Mute & Language selector */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
-            onClick={() => voice.setLanguage('en-IN')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              voice.language === 'en-IN'
-                ? 'bg-white text-violet-700 shadow-xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
+            onClick={voice.toggleMute}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex items-center gap-1.5 shadow-2xs ${
+              voice.isMuted
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
+            title={voice.isMuted ? 'Voice playback is muted' : 'Voice playback is active'}
           >
-            English (India)
+            {voice.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-violet-600" />}
+            <span>{voice.isMuted ? 'Muted' : 'Voice On'}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => voice.setLanguage('hi-IN')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              voice.language === 'hi-IN'
-                ? 'bg-white text-violet-700 shadow-xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Hindi (हिंदी)
-          </button>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => voice.setLanguage('en-IN')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                voice.language === 'en-IN'
+                  ? 'bg-white text-violet-700 shadow-xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => voice.setLanguage('hi-IN')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                voice.language === 'hi-IN'
+                  ? 'bg-white text-violet-700 shadow-xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Hindi
+            </button>
+          </div>
         </div>
       </div>
 

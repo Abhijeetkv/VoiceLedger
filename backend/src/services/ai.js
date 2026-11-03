@@ -32,7 +32,7 @@ User: "I spent 250 rupees on lunch"
 Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Lunch", "date": "{todayISO}" }], "spokenReply": "Done! Your ₹250 lunch expense has been saved." }
 
 User: "I spent 350 on Swiggy and 250 on Zomato"
-Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 350, "currency": "INR", "category": "Food", "note": "Swiggy", "date": "{todayISO}" }, { "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Zomato", "date": "{todayISO}" }], "spokenReply": "Done! Added ₹350 for Swiggy and ₹250 for Zomato to your expenses." }
+Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 350, "currency": "INR", "category": "Food", "note": "Swiggy", "date": "{todayISO}" }, { "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Zomato", "date": "{todayISO}" }], "spokenReply": "Done! Added your expenses." }
 
 User: "Remind me to submit my assignment tomorrow"
 Response: { "actions": [{ "type": "ADD_REMINDER", "title": "Submit assignment", "dueDate": "{tomorrowISO}" }], "spokenReply": "Reminder set! I'll remind you to submit your assignment tomorrow." }
@@ -242,7 +242,7 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
   if (actions.length === 0) {
     return {
       actions: [],
-      spokenReply: "I couldn't detect any expenses or tasks in that command. Please try saying, for example: 'Spent 350 on Swiggy and 250 on Zomato'.",
+      spokenReply: '',
     };
   }
 
@@ -253,13 +253,12 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
   const tasks = actions.filter((a) => a.type === 'ADD_TASK');
 
   if (expenses.length > 0 && (reminders.length > 0 || tasks.length > 0)) {
-    const expText = expenses.map((e) => `₹${e.amount} for ${e.note}`).join(' and ');
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
     const extra = [...reminders.map((r) => `reminder "${r.title}"`), ...tasks.map((t) => `task "${t.title}"`)].join(' and ');
-    spokenReply = `Done! Added ${expText}, and created ${extra}.`;
+    spokenReply = `Done! Added ₹${total} in expenses, and created ${extra}.`;
   } else if (expenses.length > 1) {
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const details = expenses.map((e) => `₹${e.amount} on ${e.note}`).join(' and ');
-    spokenReply = `Done! Added ${details} (Total: ₹${total}).`;
+    spokenReply = `Done! Added ₹${total} across ${expenses.length} expenses.`;
   } else if (expenses.length === 1) {
     spokenReply = `Done! Your ₹${expenses[0].amount} ${expenses[0].note} expense has been saved.`;
   } else if (reminders.length > 0) {
