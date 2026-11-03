@@ -1,7 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { aiResponseSchema } from '../utils/validation.js';
 
-const SYSTEM_PROMPT = `You are VoiceLedger AI assistant. You process voice commands about expenses, tasks, reminders, and emails.
+const SYSTEM_PROMPT = `You are VoiceLedger AI, an intelligent, friendly, and natural voice assistant for personal finances, expenses, tasks, and daily reminders.
+You talk naturally and warmly with the user, like a helpful financial companion.
 
 Current date: {currentDate}
 Timezone: {timezone}
@@ -17,33 +18,22 @@ ALLOWED ACTIONS:
 
 EXPENSE CATEGORIES: Food, Transport, Shopping, Bills, Health, Entertainment, Education, Other
 
-RULES:
-- Extract ALL actions from the user's command
-- If the user mentions multiple expenses in a single sentence (e.g. "350 on Swiggy and 250 on Zomato"), extract a separate ADD_EXPENSE action for EACH expense
-- Popular food delivery and dining brands like Swiggy, Zomato, Blinkit, Zepto, McDonald's, Domino's MUST be categorized as "Food"
-- Resolve relative dates (tomorrow, Friday, next week) to ISO dates using the current date
-- Default currency is INR
-- For ambiguous input, return empty actions array and ask a clarification question in spokenReply
-- Respond in the SAME LANGUAGE as the user's input
-- For Hindi input, respond in Hindi
-
-EXAMPLES:
-User: "I spent 250 rupees on lunch"
-Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Lunch", "date": "{todayISO}" }], "spokenReply": "Done! Your ₹250 lunch expense has been saved." }
-
-User: "I spent 350 on Swiggy and 250 on Zomato"
-Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 350, "currency": "INR", "category": "Food", "note": "Swiggy", "date": "{todayISO}" }, { "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Zomato", "date": "{todayISO}" }], "spokenReply": "Done! Added your expenses." }
-
-User: "Remind me to submit my assignment tomorrow"
-Response: { "actions": [{ "type": "ADD_REMINDER", "title": "Submit assignment", "dueDate": "{tomorrowISO}" }], "spokenReply": "Reminder set! I'll remind you to submit your assignment tomorrow." }
-
-User: "I spent 250 rupees on lunch and remind me to submit my college form on Friday"
-Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Lunch", "date": "{todayISO}" }, { "type": "ADD_REMINDER", "title": "Submit college form", "dueDate": "{fridayISO}" }], "spokenReply": "Done! Your ₹250 lunch expense has been saved, and your college form reminder is set for Friday." }
-
-User: "How much did I spend today?"
-Response: { "actions": [{ "type": "QUERY_SUMMARY", "period": "today", "category": null }], "spokenReply": "" }
-
-You MUST respond with valid JSON only. No markdown, no code blocks, just the JSON object with "actions" array and "spokenReply" string.`;
+NATURAL CONVERSATION & CHAT RULES:
+- If the user engages in casual conversation (e.g. greetings like "hello", "hey", "namaste", affirmations like "yeah yeah yeah", "ok bro", "cool", "sure", questions like "how are you", "who are you", "what can you do", "give me a savings tip", or incomplete phrases like "bro could you", "can you", "listen"):
+  - Respond warmly, naturally, and conversationally in "spokenReply".
+  - Keep "actions" as an empty array [].
+  - NEVER stay silent or return an empty "spokenReply".
+- If the user gives a financial or task command:
+  - Extract ALL appropriate actions.
+  - For compound expenses (e.g. "350 on Swiggy and 250 on Zomato"), extract a separate ADD_EXPENSE action for EACH.
+  - Popular delivery and food brands (Swiggy, Zomato, Blinkit, Zepto, McDonald's, Domino's, chai, dinner, lunch) MUST be categorized as "Food".
+  - Resolve relative dates (tomorrow, Friday, next week) to ISO dates using the current date.
+  - Provide a friendly, concise confirmation in "spokenReply" (1-2 sentences) that will be read aloud to the user.
+- For spending queries (e.g. "How much did I spend today?"):
+  - Return QUERY_SUMMARY action.
+  - Set "spokenReply" to an acknowledging phrase like "Checking your spending summary now." (the server will inject exact calculations).
+- Respond in the SAME LANGUAGE or blend as the user (English, Hindi, or Hinglish).
+- Always return valid JSON only with keys "actions" (array) and "spokenReply" (string). No markdown, no commentary outside JSON.`;
 
 /**
  * Build the system prompt with actual date values.
@@ -71,8 +61,7 @@ function buildSystemPrompt(currentDateISO, timezone) {
  * Parse JSON from AI response text, stripping markdown fences if present.
  */
 function parseJsonResponse(text) {
-  let cleaned = text.trim();
-  // Strip markdown code fences if present
+  let cleaned = (text || '').trim();
   const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (codeBlockMatch) {
     cleaned = codeBlockMatch[1].trim();
@@ -80,7 +69,6 @@ function parseJsonResponse(text) {
   try {
     return JSON.parse(cleaned);
   } catch (e) {
-    // Try to extract outermost { ... }
     const firstBrace = cleaned.indexOf('{');
     const lastBrace = cleaned.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -93,86 +81,127 @@ function parseJsonResponse(text) {
 
 function categorizeExpenseNote(note) {
   const n = (note || '').toLowerCase();
-  if (/swiggy|swigy|zomato|blinkit|zepto|instamart|food|lunch|dinner|breakfast|canteen|coffee|tea|chai|cafe|burger|pizza|dosa|samosa|restaurant|khana|grocer|subzi|fruits|milk|mcdonald|domino|kfc|snack|momo|biryani|paneer|roti/i.test(n)) {
+  if (/swiggy|swigy|zomato|blinkit|zepto|instamart|food|lunch|dinner|breakfast|canteen|coffee|tea|chai|cafe|burger|pizza|dosa|samosa|restaurant|khana|grocer|subzi|fruits|milk|mcdonald|domino|kfc|snack|momo|biryani|paneer|roti|bakery/i.test(n)) {
     return 'Food';
   }
-  if (/uber|ola|rapido|cab|auto|taxi|metro|bus|train|flight|petrol|diesel|fuel|transport|travel|toll|parking/i.test(n)) {
+  if (/uber|ola|rapido|cab|auto|taxi|metro|bus|train|flight|petrol|diesel|fuel|transport|travel|toll|parking|fare/i.test(n)) {
     return 'Transport';
   }
-  if (/amazon|flipkart|myntra|ajio|meesho|shopping|clothes|shirt|pant|shoes|dress|mall|zara|h&m|earphones|headphones/i.test(n)) {
+  if (/amazon|flipkart|myntra|ajio|meesho|shopping|clothes|shirt|pant|shoes|dress|mall|zara|h&m|earphones|headphones|electronics/i.test(n)) {
     return 'Shopping';
   }
-  if (/bill|electricity|water|wifi|broadband|recharge|mobile|jio|airtel|rent|maintenance|gas/i.test(n)) {
+  if (/bill|electricity|water|wifi|broadband|recharge|mobile|jio|airtel|rent|maintenance|gas|dth/i.test(n)) {
     return 'Bills';
   }
-  if (/doctor|medicine|pharmacy|hospital|clinic|test|gym|health|fitness/i.test(n)) {
+  if (/doctor|medicine|pharmacy|hospital|clinic|test|gym|health|fitness|dentist|tablet/i.test(n)) {
     return 'Health';
   }
-  if (/movie|cinema|netflix|prime|hotstar|spotify|game|party|club|entertainment/i.test(n)) {
+  if (/movie|cinema|netflix|prime|hotstar|spotify|game|party|club|entertainment|concert|event/i.test(n)) {
     return 'Entertainment';
   }
-  if (/book|course|college|school|tuition|pen|exam|fee|education|udemy|coursera|assignment/i.test(n)) {
+  if (/book|course|college|school|tuition|pen|exam|fee|education|udemy|coursera|assignment|stationery/i.test(n)) {
     return 'Education';
   }
   return 'Other';
 }
 
 /**
- * Fallback natural language rule-based parser.
- * Used when Gemini API is unavailable or rate-limited.
+ * Natural conversational fallback parser.
+ * Used when Gemini is unavailable or rate-limited.
  */
 function fallbackParseVoiceCommand(transcript, currentDateISO) {
   const actions = [];
   const lower = (transcript || '').toLowerCase().trim();
   const now = new Date(currentDateISO || new Date());
 
-  // 0. Conversational greetings, confirmations, and casual chat
-  if (/^(?:hi|hello|hey|hola|namaste|good\s+(?:morning|afternoon|evening))\b/i.test(lower)) {
+  // 1. Casual banter, confirmations & affirmations
+  if (/^(?:yeah|yes|ok|okay|yep|sure|alright|fine|cool|haan|theek\s+hai|bilkul|sahi\s+hai)(?:\s+(?:yeah|yes|ok|okay|bro|man|dude|bhai|ji))*$/i.test(lower)) {
+    const replies = [
+      "I'm ready! What expense or reminder would you like to add?",
+      "Got it! What can I record for you?",
+      "Awesome, I'm listening. Tell me what you'd like to track.",
+    ];
     return {
       actions: [],
-      spokenReply: "Hello! I am your VoiceLedger assistant. You can tell me your expenses, tasks, or reminders.",
+      spokenReply: replies[Math.floor(Math.random() * replies.length)],
     };
   }
 
-  if (/\b(?:how\s+are\s+you|how's\s+it\s+going|kaise\s+ho)\b/i.test(lower)) {
+  // 2. Incomplete or prompt requests
+  if (/^(?:bro|hey\s+bro|bhai|can\s+you|could\s+you|bro\s+could\s+you|please|suno|listen)\b/i.test(lower) && !/\d+/.test(lower)) {
     return {
       actions: [],
-      spokenReply: "I am doing great, ready to help you track your spending and reminders! What can I log for you?",
+      spokenReply: "I'm right here! Tell me what you'd like to record, like 'Spent 200 on lunch' or set a reminder.",
     };
   }
 
-  if (/\b(?:what\s+can\s+you\s+do|help|who\s+are\s+you|kya\s+kar\s+sakte\s+ho)\b/i.test(lower)) {
+  // 3. Greetings
+  if (/^(?:hi|hello|hey|hola|namaste|good\s+(?:morning|afternoon|evening)|yo|wassup|hey\s+there)\b/i.test(lower)) {
     return {
       actions: [],
-      spokenReply: "I can log your daily expenses, create tasks, set reminders, and query your spending. Just speak naturally!",
+      spokenReply: "Hello! I am your VoiceLedger assistant. You can tell me your expenses, tasks, or ask about your spending.",
     };
   }
 
-  if (/^(?:yeah|yes|ok|okay|yep|sure|alright|fine|cool|haan|theek\s+hai)(?:\s+(?:yeah|yes|ok|okay|bro|man|dude))*$/i.test(lower)) {
+  // 4. Well-being
+  if (/\b(?:how\s+are\s+you|how's\s+it\s+going|kaise\s+ho|kya\s+haal\s+hai)\b/i.test(lower)) {
     return {
       actions: [],
-      spokenReply: "I am ready! What expense or reminder would you like to add?",
+      spokenReply: "I'm doing great, thank you! Ready to help you track expenses and tasks. What's on your mind?",
     };
   }
 
-  if (/^(?:bro|hey\s+bro|can\s+you|could\s+you|bro\s+could\s+you|please)\b/i.test(lower) && !/\d+/.test(lower)) {
+  // 5. Identity & Capabilities
+  if (/\b(?:who\s+are\s+you|what\s+can\s+you\s+do|what\s+are\s+you|help(?:\s+me)?|kya\s+kar\s+sakte\s+ho|guide\s+me)\b/i.test(lower)) {
     return {
       actions: [],
-      spokenReply: "Sure! Tell me the expense or task you would like to record.",
+      spokenReply: "I am VoiceLedger, your smart voice assistant. You can tell me your expenses, set reminders, create tasks, or ask 'How much did I spend this week?'",
     };
   }
 
-  // 1. Spending query
-  if (lower.includes('how much') || lower.includes('show my') || lower.includes('what was my') || lower.includes('summary')) {
+  // 6. Gratitude & Compliments
+  if (/\b(?:thanks|thank\s+you|dhanyawad|shukriya|great\s+job|awesome|nice|cool)\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "You're very welcome! Feel free to let me know whenever you have an expense or task to track.",
+    };
+  }
+
+  // 7. Goodbyes
+  if (/\b(?:bye|goodbye|see\s+you|good\s*night|alvida|tata)\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "Goodbye! Have a great day, and keep track of your budget!",
+    };
+  }
+
+  // 8. Financial advice & tips
+  if (/\b(?:save\s+money|saving\s+tips|budget\s+tip|how\s+to\s+save)\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "A great rule of thumb is the 50-30-20 rule: 50% for needs, 30% for wants, and 20% for savings and investments. Try tracking your small daily expenses first!",
+    };
+  }
+
+  // 9. Light humor / jokes
+  if (/\b(?:joke|funny|make\s+me\s+laugh)\b/i.test(lower)) {
+    return {
+      actions: [],
+      spokenReply: "Why did the rupee go to school? To get a little change! Now, what expense should we record?",
+    };
+  }
+
+  // 10. Spending query
+  if (lower.includes('how much') || lower.includes('show my') || lower.includes('what was my') || lower.includes('summary') || lower.includes('kitna kharch')) {
     let period = 'today';
-    if (lower.includes('week')) period = 'week';
-    if (lower.includes('month')) period = 'month';
-    if (lower.includes('all') || lower.includes('total')) period = 'all';
+    if (lower.includes('week') || lower.includes('hafte')) period = 'week';
+    if (lower.includes('month') || lower.includes('mahine')) period = 'month';
+    if (lower.includes('all') || lower.includes('total') || lower.includes('sab')) period = 'all';
     actions.push({ type: 'QUERY_SUMMARY', period, category: null });
-    return { actions, spokenReply: '' };
+    return { actions, spokenReply: 'Checking your spending summary now.' };
   }
 
-  // 2. Email command
+  // 11. Email command
   if (lower.includes('email') || lower.includes('send summary')) {
     actions.push({
       type: 'SEND_EMAIL',
@@ -182,13 +211,13 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
     return { actions, spokenReply: 'I am emailing your spending summary now.' };
   }
 
-  // 3. Delete last
-  if (lower.includes('delete') && (lower.includes('last') || lower.includes('latest'))) {
+  // 12. Delete last
+  if (lower.includes('delete') && (lower.includes('last') || lower.includes('latest') || lower.includes('undo'))) {
     actions.push({ type: 'DELETE_LAST' });
     return { actions, spokenReply: 'Deleted your last expense.' };
   }
 
-  // 4. Reminders & Tasks
+  // 13. Reminders & Tasks
   let cleanText = transcript;
   const reminderMatch = cleanText.match(/(?:remind\s+me\s+to|set\s+a?\s*reminder\s+for|reminder\s+to)\s+(.+?)(?=(?:\s+and\s+(?:spent|spend|paid|\d+))|$)/i);
   if (reminderMatch) {
@@ -227,18 +256,14 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
     cleanText = cleanText.replace(full, ' ');
   }
 
-  // 5. Multiple / Compound Expenses (e.g. "I spend 350 on swigy and 250 on zomato")
+  // 14. Multiple / Compound Expenses
   cleanText = cleanText.replace(/^(?:i\s+|please\s+|can\s+you\s+)+/i, '');
-
   const clauses = cleanText.split(/\s*(?:,\s*|\s+and\s+|\s+plus\s+|\s+aur\s+|\s*;\s*)\s*/i);
 
   for (const clause of clauses) {
     const trimmed = clause.trim();
     if (!trimmed) continue;
 
-    // Pattern A: (spent/paid/spend) 350 (rupees/rs/inr) on/for/at swiggy
-    // Pattern B: 350 (rupees/rs/inr) on/for/at swiggy
-    // Pattern C: swiggy 350
     const m = trimmed.match(/(?:spent|paid|spend|kharch(?:e|ed)?|kharch kiye)?\s*(?:₹|rs\.?|rupees|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?|inr|₹)?\s*(?:on|for|in|at|to)?\s*(.+)/i) ||
               trimmed.match(/(?:paid|to)?\s*([a-zA-Z\s]+?)\s*(?:₹|rs\.?|rupees|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?|inr|₹)?$/i);
 
@@ -278,7 +303,7 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
   if (actions.length === 0) {
     return {
       actions: [],
-      spokenReply: "I heard you! Please tell me an expense amount or a reminder task to record.",
+      spokenReply: "I'm listening! You can tell me an expense like 'Spent 200 on lunch' or set a reminder.",
     };
   }
 
@@ -302,16 +327,16 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
   } else if (tasks.length > 0) {
     spokenReply = `Your task "${tasks[0].title}" has been created.`;
   } else {
-    spokenReply = 'Action completed.';
+    spokenReply = 'Done! Your request has been recorded.';
   }
 
   return { actions, spokenReply };
 }
 
 /**
- * Process a voice command using Gemini AI.
+ * Process a voice command using Gemini AI with model fallback and conversational history.
  */
-async function processWithGemini({ transcript, timezone, currentDateISO }) {
+async function processWithGemini({ transcript, timezone, currentDateISO, conversationHistory }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.warn('[AI] GEMINI_API_KEY not configured. Using fallback parser.');
@@ -319,42 +344,56 @@ async function processWithGemini({ transcript, timezone, currentDateISO }) {
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  let model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  // Normalize deprecated model names
-  if (model === 'gemini-2.0-flash') {
-    model = 'gemini-3.8-flash';
-  }
+  
+  // Model priority list: try preferred model, then light/preview models with independent quotas
+  const candidateModels = [
+    process.env.GEMINI_MODEL || 'gemini-flash-lite-latest',
+    'gemini-flash-lite-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash-lite',
+  ].filter((v, idx, arr) => arr.indexOf(v) === idx);
 
   const systemPrompt = buildSystemPrompt(currentDateISO, timezone);
 
-  let lastError = null;
+  // Build conversational context if history is provided
+  let userMessage = transcript;
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    const recent = conversationHistory.slice(-4);
+    const historyText = recent
+      .map((m) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.text}`)
+      .join('\n');
+    userMessage = `Recent Conversation Context:\n${historyText}\n\nCurrent User Input: ${transcript}`;
+  }
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const userMessage = attempt === 0
-      ? transcript
-      : `${transcript}\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown, no code blocks. Just the raw JSON object with "actions" array and "spokenReply" string.`;
-
+  for (const model of candidateModels) {
     try {
       const response = await ai.models.generateContent({
         model,
         contents: userMessage,
         config: {
           systemInstruction: systemPrompt,
-          temperature: 0.1,
+          temperature: 0.2,
         },
       });
 
       const responseText = response.text;
       const parsed = parseJsonResponse(responseText);
       const validated = aiResponseSchema.parse(parsed);
+
+      // Ensure spokenReply is never empty
+      if (!validated.spokenReply || !validated.spokenReply.trim()) {
+        validated.spokenReply = validated.actions.length > 0
+          ? 'Done! I have recorded that for you.'
+          : "I'm listening! Tell me an expense to add or a task to set.";
+      }
+
       return validated;
     } catch (error) {
-      lastError = error;
-      console.warn(`[AI] Attempt ${attempt + 1} with model ${model} failed:`, error.message);
+      console.warn(`[AI] Model ${model} failed (${error.message?.slice(0, 120)}). Trying next candidate...`);
     }
   }
 
-  console.warn('[AI] Gemini API failed. Using fallback parser:', lastError?.message);
+  console.warn('[AI] All Gemini models exhausted or failed. Using fallback conversational parser.');
   return fallbackParseVoiceCommand(transcript, currentDateISO);
 }
 
@@ -362,23 +401,21 @@ async function processWithGemini({ transcript, timezone, currentDateISO }) {
  * Stub for Anthropic provider.
  */
 async function processWithAnthropic({ transcript, timezone, currentDateISO }) {
-  // Anthropic integration stub — structure is ready but Gemini is the primary provider.
   throw new Error('Anthropic provider is not yet fully implemented. Set AI_PROVIDER=gemini to use Gemini.');
 }
 
 /**
  * Main entry point: process a voice command with the configured AI provider.
  */
-export async function processVoiceCommand({ transcript, timezone, currentDateISO, language }) {
+export async function processVoiceCommand({ transcript, timezone, currentDateISO, language, conversationHistory }) {
   const provider = process.env.AI_PROVIDER || 'gemini';
 
   switch (provider) {
     case 'gemini':
-      return processWithGemini({ transcript, timezone, currentDateISO, language });
+      return processWithGemini({ transcript, timezone, currentDateISO, language, conversationHistory });
     case 'anthropic':
-      return processWithAnthropic({ transcript, timezone, currentDateISO, language });
+      return processWithAnthropic({ transcript, timezone, currentDateISO, language, conversationHistory });
     default:
       throw new Error(`Unknown AI provider: ${provider}. Use 'gemini' or 'anthropic'.`);
   }
 }
-

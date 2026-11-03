@@ -85,20 +85,27 @@ export default function Assistant() {
       const currentDateISO = new Date().toISOString();
       const savedEmail = localStorage.getItem('voiceledger_email') || '';
 
+      const recentHistory = history.slice(-6).map((h) => ({
+        role: h.role === 'assistant' ? 'assistant' : 'user',
+        text: h.text,
+      }));
+
       const response = await sendVoiceCommand({
         transcript: text,
         timezone,
         currentDateISO,
         language: voice.language,
         userEmail: savedEmail,
+        conversationHistory: recentHistory,
       });
 
       const { spokenReply, actions = [], results = [] } = response.data;
+      const replyText = spokenReply?.trim() || (actions.length > 0 ? 'Action completed.' : "I'm listening! What would you like to record?");
 
       const aiEntry = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        text: spokenReply || 'Action completed.',
+        text: replyText,
         actions,
         results,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -106,17 +113,16 @@ export default function Assistant() {
 
       setHistory((prev) => [...prev, aiEntry]);
 
-      // Speak response
-      if (spokenReply) {
-        await voice.speak(spokenReply);
-      } else {
-        voice.setState('idle');
-      }
+      // Speak response out loud - never remain mute
+      await voice.speak(replyText);
 
-      toast.success('Command executed successfully');
+      if (actions.length > 0) {
+        toast.success(actions.length > 1 ? `${actions.length} actions executed` : 'Action completed');
+      }
     } catch (err) {
       console.error(err);
-      const errMsg = err.response?.data?.error || err.message || 'Failed to process voice command';
+      const rawErr = err.response?.data?.error || err.message || 'Failed to process voice command';
+      const errMsg = typeof rawErr === 'object' ? (rawErr.message || JSON.stringify(rawErr)) : String(rawErr);
       
       voice.setError(errMsg);
       voice.setState('error');

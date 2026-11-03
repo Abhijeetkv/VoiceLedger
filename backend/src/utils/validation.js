@@ -66,6 +66,10 @@ export const voiceCommandSchema = z.object({
   currentDateISO: z.string().optional(),
   language: z.string().default('en-IN'),
   userEmail: z.string().optional(),
+  conversationHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    text: z.string(),
+  })).optional(),
 });
 
 // Category normalizer to ensure case-insensitive matching with Prisma enum

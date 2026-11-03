@@ -16,20 +16,21 @@ router.use(optionalAuth);
 router.post('/', async (req, res, next) => {
   try {
     // 1. Validate request body
-    const { transcript, timezone, currentDateISO, language, userEmail } = voiceCommandSchema.parse(req.body);
+    const { transcript, timezone, currentDateISO, language, userEmail, conversationHistory } = voiceCommandSchema.parse(req.body);
 
     const dateISO = currentDateISO || new Date().toISOString();
     const resolvedEmail = userEmail || req.user?.email;
 
-    // 2. Call AI to process the transcript
+    // 2. Call AI to process the transcript with conversational history
     const aiResult = await processVoiceCommand({
       transcript,
       timezone,
       currentDateISO: dateISO,
       language,
+      conversationHistory,
     });
 
-    let { actions, spokenReply } = aiResult;
+    let { actions = [], spokenReply = '' } = aiResult;
     let results = [];
 
     // 3. Execute actions if present
@@ -51,8 +52,15 @@ router.post('/', async (req, res, next) => {
         spokenReply = `No expenses found for ${summary.period}.`;
       } else {
         const highestCategory = summary.byCategory.sort((a, b) => b.total - a.total)[0];
-        spokenReply = `You spent ${formattedTotal} ${summary.period === 'today' ? 'today' : `this ${summary.period}`} across ${summary.count} transaction${summary.count !== 1 ? 's' : ''}. Highest category: ${highestCategory.category} (₹${Math.round(highestCategory.total)}).`;
+        spokenReply = `You spent ${formattedTotal} ${summary.period === 'today' ? 'today' : `this ${summary.period}`} across ${summary.count} transaction${summary.count !== 1 ? 's' : ''}. Highest category: ${highestCategory?.category || 'Other'} (₹${Math.round(highestCategory?.total || 0)}).`;
       }
+    }
+
+    // Ensure spokenReply is never empty so the voice assistant never remains mute
+    if (!spokenReply || !spokenReply.trim()) {
+      spokenReply = actions.length > 0
+        ? 'Action completed.'
+        : "I'm here! Tell me an expense to log or a reminder to set.";
     }
 
     // 5. Save to CommandHistory
@@ -60,7 +68,7 @@ router.post('/', async (req, res, next) => {
       data: {
         userId: req.user?.id || null,
         transcript,
-        spokenReply: spokenReply || '',
+        spokenReply,
         actions,
         results,
       },
