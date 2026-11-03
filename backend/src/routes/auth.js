@@ -117,7 +117,7 @@ router.post('/demo', async (_req, res, next) => {
     });
 
     if (!user) {
-      const hashedPassword = await bcrypt.hash('password123', 10);
+      const hashedPassword = await bcrypt.hash('V0iceLedg3r#Demo2026', 10);
       user = await prisma.user.create({
         data: {
           email: demoEmail,
