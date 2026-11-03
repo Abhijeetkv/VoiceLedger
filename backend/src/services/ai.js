@@ -19,6 +19,8 @@ EXPENSE CATEGORIES: Food, Transport, Shopping, Bills, Health, Entertainment, Edu
 
 RULES:
 - Extract ALL actions from the user's command
+- If the user mentions multiple expenses in a single sentence (e.g. "350 on Swiggy and 250 on Zomato"), extract a separate ADD_EXPENSE action for EACH expense
+- Popular food delivery and dining brands like Swiggy, Zomato, Blinkit, Zepto, McDonald's, Domino's MUST be categorized as "Food"
 - Resolve relative dates (tomorrow, Friday, next week) to ISO dates using the current date
 - Default currency is INR
 - For ambiguous input, return empty actions array and ask a clarification question in spokenReply
@@ -28,6 +30,9 @@ RULES:
 EXAMPLES:
 User: "I spent 250 rupees on lunch"
 Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Lunch", "date": "{todayISO}" }], "spokenReply": "Done! Your ₹250 lunch expense has been saved." }
+
+User: "I spent 350 on Swiggy and 250 on Zomato"
+Response: { "actions": [{ "type": "ADD_EXPENSE", "amount": 350, "currency": "INR", "category": "Food", "note": "Swiggy", "date": "{todayISO}" }, { "type": "ADD_EXPENSE", "amount": 250, "currency": "INR", "category": "Food", "note": "Zomato", "date": "{todayISO}" }], "spokenReply": "Done! Added ₹350 for Swiggy and ₹250 for Zomato to your expenses." }
 
 User: "Remind me to submit my assignment tomorrow"
 Response: { "actions": [{ "type": "ADD_REMINDER", "title": "Submit assignment", "dueDate": "{tomorrowISO}" }], "spokenReply": "Reminder set! I'll remind you to submit your assignment tomorrow." }
@@ -86,16 +91,42 @@ function parseJsonResponse(text) {
   }
 }
 
+function categorizeExpenseNote(note) {
+  const n = (note || '').toLowerCase();
+  if (/swiggy|swigy|zomato|blinkit|zepto|instamart|food|lunch|dinner|breakfast|canteen|coffee|tea|chai|cafe|burger|pizza|dosa|samosa|restaurant|khana|grocer|subzi|fruits|milk|mcdonald|domino|kfc|snack|momo|biryani|paneer|roti/i.test(n)) {
+    return 'Food';
+  }
+  if (/uber|ola|rapido|cab|auto|taxi|metro|bus|train|flight|petrol|diesel|fuel|transport|travel|toll|parking/i.test(n)) {
+    return 'Transport';
+  }
+  if (/amazon|flipkart|myntra|ajio|meesho|shopping|clothes|shirt|pant|shoes|dress|mall|zara|h&m|earphones|headphones/i.test(n)) {
+    return 'Shopping';
+  }
+  if (/bill|electricity|water|wifi|broadband|recharge|mobile|jio|airtel|rent|maintenance|gas/i.test(n)) {
+    return 'Bills';
+  }
+  if (/doctor|medicine|pharmacy|hospital|clinic|test|gym|health|fitness/i.test(n)) {
+    return 'Health';
+  }
+  if (/movie|cinema|netflix|prime|hotstar|spotify|game|party|club|entertainment/i.test(n)) {
+    return 'Entertainment';
+  }
+  if (/book|course|college|school|tuition|pen|exam|fee|education|udemy|coursera|assignment/i.test(n)) {
+    return 'Education';
+  }
+  return 'Other';
+}
+
 /**
  * Fallback natural language rule-based parser.
- * Used when Gemini API is unavailable or returns an error.
+ * Used when Gemini API is unavailable or rate-limited.
  */
 function fallbackParseVoiceCommand(transcript, currentDateISO) {
   const actions = [];
   const lower = transcript.toLowerCase();
   const now = new Date(currentDateISO || new Date());
 
-  // Spending query
+  // 1. Spending query
   if (lower.includes('how much') || lower.includes('show my') || lower.includes('what was my') || lower.includes('summary')) {
     let period = 'today';
     if (lower.includes('week')) period = 'week';
@@ -105,53 +136,27 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
     return { actions, spokenReply: '' };
   }
 
-  // Email command
+  // 2. Email command
   if (lower.includes('email') || lower.includes('send summary')) {
     actions.push({
       type: 'SEND_EMAIL',
       subject: 'Weekly Spending Summary',
       body: 'Your weekly spending summary from VoiceLedger',
     });
+    return { actions, spokenReply: 'I am emailing your spending summary now.' };
   }
 
-  // Delete last
+  // 3. Delete last
   if (lower.includes('delete') && (lower.includes('last') || lower.includes('latest'))) {
     actions.push({ type: 'DELETE_LAST' });
     return { actions, spokenReply: 'Deleted your last expense.' };
   }
 
-  // Expense (e.g. spent 250 rupees on lunch)
-  const expenseMatch = transcript.match(/(?:spent|paid|spend|kharche?|kharch kiye)\s*(?:₹|rs\.?|rupees)?\s*(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?)?\s*(?:on|for|in)?\s*([a-zA-Z\s]+)?/i) ||
-                       transcript.match(/(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?|₹)\s*(?:spent|paid|on)?\s*([a-zA-Z\s]+)?/i);
-
-  if (expenseMatch) {
-    const amount = parseFloat(expenseMatch[1]);
-    let rawNote = (expenseMatch[2] || 'Expense').trim();
-    rawNote = rawNote.split(/\b(?:and\s+remind|and\s+task|and\s+set)\b/i)[0].trim();
-
-    let category = 'Other';
-    const noteLower = rawNote.toLowerCase();
-    if (/lunch|dinner|breakfast|food|canteen|coffee|tea|burger|pizza|dosa|samosa|restaurant|khana/i.test(noteLower)) category = 'Food';
-    else if (/cab|auto|uber|ola|bus|train|flight|petrol|fuel|transport|travel/i.test(noteLower)) category = 'Transport';
-    else if (/shopping|clothes|shirt|shoes|amazon|flipkart|myntra|headphones/i.test(noteLower)) category = 'Shopping';
-    else if (/bill|recharge|electricity|wifi|broadband|rent/i.test(noteLower)) category = 'Bills';
-    else if (/doctor|medicine|hospital|pharmacy|health/i.test(noteLower)) category = 'Health';
-    else if (/movie|netflix|game|entertainment/i.test(noteLower)) category = 'Entertainment';
-    else if (/book|course|college|tuition|pen|notebook|school|education/i.test(noteLower)) category = 'Education';
-
-    actions.push({
-      type: 'ADD_EXPENSE',
-      amount,
-      currency: 'INR',
-      category,
-      note: rawNote || 'Expense',
-      date: now.toISOString(),
-    });
-  }
-
-  // Reminder (e.g. remind me to submit college form on Friday / tomorrow)
-  const reminderMatch = transcript.match(/remind\s+me\s+to\s+(.*?)(?:\s+on\s+|\s+by\s+|\s+tomorrow|\s+next|\s*$)/i);
+  // 4. Reminders & Tasks
+  let cleanText = transcript;
+  const reminderMatch = cleanText.match(/(?:remind\s+me\s+to|set\s+a?\s*reminder\s+for|reminder\s+to)\s+(.+?)(?=(?:\s+and\s+(?:spent|spend|paid|\d+))|$)/i);
   if (reminderMatch) {
+    const full = reminderMatch[0];
     let title = reminderMatch[1].trim();
     let dueDate = new Date(now);
     dueDate.setDate(dueDate.getDate() + 1);
@@ -164,31 +169,105 @@ function fallbackParseVoiceCommand(transcript, currentDateISO) {
     }
     dueDate.setHours(10, 0, 0, 0);
 
+    title = title.replace(/\s+(?:on\s+friday|tomorrow|next\s+week|at\s+\d+.*)$/i, '').trim();
+
     actions.push({
       type: 'ADD_REMINDER',
       title: title || 'Reminder',
       dueDate: dueDate.toISOString(),
     });
+    cleanText = cleanText.replace(full, ' ');
+  }
+
+  const taskMatch = cleanText.match(/(?:add\s+task|new\s+task|task\s+to)\s+(.+?)(?=(?:\s+and\s+(?:spent|spend|paid|\d+))|$)/i);
+  if (taskMatch) {
+    const full = taskMatch[0];
+    let title = taskMatch[1].trim();
+    actions.push({
+      type: 'ADD_TASK',
+      title: title || 'Task',
+      dueDate: null,
+    });
+    cleanText = cleanText.replace(full, ' ');
+  }
+
+  // 5. Multiple / Compound Expenses (e.g. "I spend 350 on swigy and 250 on zomato")
+  cleanText = cleanText.replace(/^(?:i\s+|please\s+|can\s+you\s+)+/i, '');
+
+  const clauses = cleanText.split(/\s*(?:,\s*|\s+and\s+|\s+plus\s+|\s+aur\s+|\s*;\s*)\s*/i);
+
+  for (const clause of clauses) {
+    const trimmed = clause.trim();
+    if (!trimmed) continue;
+
+    // Pattern A: (spent/paid/spend) 350 (rupees/rs/inr) on/for/at swiggy
+    // Pattern B: 350 (rupees/rs/inr) on/for/at swiggy
+    // Pattern C: swiggy 350
+    const m = trimmed.match(/(?:spent|paid|spend|kharch(?:e|ed)?|kharch kiye)?\s*(?:₹|rs\.?|rupees|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?|inr|₹)?\s*(?:on|for|in|at|to)?\s*(.+)/i) ||
+              trimmed.match(/(?:paid|to)?\s*([a-zA-Z\s]+?)\s*(?:₹|rs\.?|rupees|inr)?\s*(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?|inr|₹)?$/i);
+
+    if (m) {
+      let amount, rawNote;
+      if (!isNaN(parseFloat(m[1]))) {
+        amount = parseFloat(m[1]);
+        rawNote = (m[2] || '').trim();
+      } else {
+        rawNote = (m[1] || '').trim();
+        amount = parseFloat(m[2]);
+      }
+
+      rawNote = rawNote
+        .replace(/^(?:on|for|at|to|in)\s+/i, '')
+        .replace(/\s+(?:rupees|rs|inr|only)$/i, '')
+        .replace(/^(?:my\s+|a\s+|an\s+)/i, '')
+        .trim();
+
+      if (amount > 0 && rawNote) {
+        let cleanNote = rawNote.charAt(0).toUpperCase() + rawNote.slice(1);
+        if (/^swigy$/i.test(cleanNote)) cleanNote = 'Swiggy';
+        if (/^zomato$/i.test(cleanNote)) cleanNote = 'Zomato';
+
+        actions.push({
+          type: 'ADD_EXPENSE',
+          amount,
+          currency: 'INR',
+          category: categorizeExpenseNote(rawNote),
+          note: cleanNote,
+          date: now.toISOString(),
+        });
+      }
+    }
   }
 
   if (actions.length === 0) {
     return {
       actions: [],
-      spokenReply: "I didn't quite catch that. Could you please specify an expense amount or a reminder task?",
+      spokenReply: "I couldn't detect any expenses or tasks in that command. Please try saying, for example: 'Spent 350 on Swiggy and 250 on Zomato'.",
     };
   }
 
-  let spokenReply = 'Done! ';
-  const exp = actions.find((a) => a.type === 'ADD_EXPENSE');
-  const rem = actions.find((a) => a.type === 'ADD_REMINDER');
-  if (exp && rem) {
-    spokenReply += `Your ₹${exp.amount} ${exp.note} expense has been saved, and your reminder is set.`;
-  } else if (exp) {
-    spokenReply += `Your ₹${exp.amount} ${exp.note} expense has been saved.`;
-  } else if (rem) {
-    spokenReply += `Your reminder "${rem.title}" has been created.`;
+  // Format Spoken Reply
+  let spokenReply = '';
+  const expenses = actions.filter((a) => a.type === 'ADD_EXPENSE');
+  const reminders = actions.filter((a) => a.type === 'ADD_REMINDER');
+  const tasks = actions.filter((a) => a.type === 'ADD_TASK');
+
+  if (expenses.length > 0 && (reminders.length > 0 || tasks.length > 0)) {
+    const expText = expenses.map((e) => `₹${e.amount} for ${e.note}`).join(' and ');
+    const extra = [...reminders.map((r) => `reminder "${r.title}"`), ...tasks.map((t) => `task "${t.title}"`)].join(' and ');
+    spokenReply = `Done! Added ${expText}, and created ${extra}.`;
+  } else if (expenses.length > 1) {
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const details = expenses.map((e) => `₹${e.amount} on ${e.note}`).join(' and ');
+    spokenReply = `Done! Added ${details} (Total: ₹${total}).`;
+  } else if (expenses.length === 1) {
+    spokenReply = `Done! Your ₹${expenses[0].amount} ${expenses[0].note} expense has been saved.`;
+  } else if (reminders.length > 0) {
+    spokenReply = `Your reminder "${reminders[0].title}" has been created.`;
+  } else if (tasks.length > 0) {
+    spokenReply = `Your task "${tasks[0].title}" has been created.`;
   } else {
-    spokenReply += `Action completed.`;
+    spokenReply = 'Action completed.';
   }
 
   return { actions, spokenReply };
