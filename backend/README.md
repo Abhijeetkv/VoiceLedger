@@ -1,6 +1,6 @@
 # VoiceLedger Backend Engine
 
-The backend service for **VoiceLedger** is built with Node.js, Express.js (ES Modules), Prisma ORM, and Google Gemini 3.8 Flash. It handles voice command parsing, database transactions, analytical calculations, JWT authentication, and transactional email dispatches.
+The backend service for **VoiceLedger** is built with Node.js, Express.js (ES Modules), Prisma ORM, and Google Gemini. It handles voice command parsing, database transactions, analytical calculations, JWT authentication, and transactional email dispatches.
 
 ---
 
@@ -21,7 +21,7 @@ graph LR
         Router --> DemoRoute[/api/demo]
     end
     
-    VoiceRoute --> AIService[Gemini 3.8 Flash + Fallback Tokenizer]
+    VoiceRoute --> AIService[Gemini Flash Lite + Fallback Tokenizer]
     AIService --> ZodVal[Zod Action Validation]
     ZodVal --> ActionExec[Action Execution Engine]
     
@@ -41,10 +41,10 @@ backend/
 ├── api/
 │   └── index.js                  # Vercel serverless function entry point
 ├── prisma/
-│   ├── schema.prisma             # PostgreSQL data model definitions
+│   ├── schema.prisma             # PostgreSQL data model definitions (with rhel-openssl binary target)
 │   └── seed.js                   # Idempotent realistic 30-day college dataset
 ├── src/
-│   ├── index.js                  # Express setup, CORS, middleware, server listener
+│   ├── index.js                  # Express setup, dynamic origin-echo CORS, middleware
 │   ├── lib/
 │   │   └── prisma.js             # Shared PrismaClient singleton
 │   ├── middleware/
@@ -52,18 +52,18 @@ backend/
 │   │   └── errorHandler.js       # Centralized error handler & Zod formatter
 │   ├── routes/
 │   │   ├── auth.js               # Signup, login, demo account, and session check
-│   │   ├── voice.js              # POST /api/voice-command orchestration
+│   │   ├── voice.js              # POST /api/voice-command with history & actions
 │   │   ├── expenses.js           # Full CRUD for expense records
 │   │   ├── tasks.js              # CRUD for tasks & /api/reminders/due
 │   │   ├── summary.js            # Time-period financial aggregates
 │   │   └── demo.js               # Seed & Reset operations
 │   ├── services/
-│   │   ├── ai.js                 # Gemini SDK integration & compound action tokenizer
+│   │   ├── ai.js                 # Gemini SDK integration, conversational model failover & tokenizer
 │   │   ├── actions.js            # Atomic action dispatcher
 │   │   ├── email.js              # Resend API with labeled mock fallback
 │   │   └── summary.js            # PostgreSQL database aggregation service
 │   └── utils/
-│       └── validation.js         # Flexible Zod schemas with case-normalization
+│       └── validation.js         # Flexible Zod schemas with case-normalization & history
 ├── vercel.json                   # Vercel serverless routing configuration
 ├── .env.example
 ├── .env
@@ -82,9 +82,11 @@ backend/
 
 ### 2. Voice Command (`/api/voice-command`)
 - **`POST /api/voice-command`**
-  - **Body**: `{ transcript: string, timezone: string, currentDateISO: string, language: string, userEmail?: string }`
+  - **Body**: `{ transcript: string, timezone: string, currentDateISO: string, language: string, userEmail?: string, conversationHistory?: Array<{ role: 'user' | 'assistant', text: string }> }`
   - **Returns**: `{ success: true, actions: Array, results: Array, spokenReply: string, commandId: string }`
   - Supports compound multi-expense sentences: e.g. *"I spent 350 on Swiggy and 250 on Zomato"*.
+  - Supports natural conversational dialogue: greetings, affirmations ("yeah yeah yeah", "ok bro"), identity questions, budgeting tips, and jokes.
+  - Automatically speaks back and guarantees `spokenReply` is never empty.
 
 ### 3. Expenses CRUD (`/api/expenses`)
 - **`GET /api/expenses`**: Filter by `category`, `startDate`, `endDate`, `limit`, `offset`.
@@ -116,7 +118,7 @@ Copy `.env.example` to `.env`:
 ```env
 DATABASE_URL="postgresql://user:password@ep-host-pooler.region.aws.neon.tech/neondb?sslmode=require"
 GEMINI_API_KEY="your_gemini_api_key"
-GEMINI_MODEL="gemini-3.8-flash"
+GEMINI_MODEL="gemini-flash-lite-latest"
 AI_PROVIDER="gemini"
 RESEND_API_KEY="re_your_api_key"
 EMAIL_FROM="onboarding@resend.dev"

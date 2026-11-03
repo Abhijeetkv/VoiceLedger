@@ -29,6 +29,7 @@ graph TD
         
         Assistant --> MicBtn[MicButton.jsx Web Speech API]
         Assistant --> Waveform[WaveformAnimation.jsx Audio Bars]
+        Assistant --> ChatBox[Chat Container with Contained Auto-Scroll]
         
         Expenses --> ExpForm[ExpenseForm.jsx Modal]
         Expenses --> CatBadge[CategoryBadge.jsx Color Pills]
@@ -86,11 +87,14 @@ frontend/
 1. **Clean White SaaS Design**:
    - Polished white surfaces (`#ffffff`), subtle borders (`slate-200/90`), and violet accent actions.
    - Zero emojis across all components and documentation.
-2. **Web Speech API Voice Capture**:
-   - Captures speech in real-time in English (`en-IN`) and Hindi (`hi-IN`).
-   - Mutes speech synthesis while listening to prevent feedback loops.
-3. **Conversational Feedback**:
-   - Synthesizes spoken replies directly back to the user upon transaction completion.
+2. **AI Voice Assistant Page (`Assistant.jsx`)**:
+   - Audio Volume Toggle: Easily switch between audible voice playback ("Voice On") and silent text mode ("Muted").
+   - Smart Contained Scrollbar: Scrollbar remains static while the user is talking into the microphone. Chat scrolls down smoothly inside the chat message container only after the assistant finishes responding.
+   - Real-time Speech Capture: Transcribes speech in real-time in English (`en-IN`) and Hindi (`hi-IN`).
+   - Mutes speech synthesis while listening to prevent audio feedback loops.
+   - Contextual Conversational Memory: Automatically forwards recent conversation turns to the backend with each request.
+3. **Conversational Audio Synthesis**:
+   - Synthesizes spoken replies directly back to the user upon transaction completion and for casual chatter, guaranteeing the assistant never goes mute.
 4. **Resilient API Architecture**:
    - `api.js` automatically resolves backend URLs across `VITE_API_URL`, `VITE_BACKEND_URL`, and local proxies.
 5. **Vercel SPA Routing**:

@@ -16,11 +16,12 @@ A user can speak naturally in English or Hindi:
 
 VoiceLedger simultaneously:
 1. **Listens and Transcribes**: Converts voice into text in real-time in the user's browser using the Web Speech API.
-2. **Understands and Dissects**: Uses Google Gemini 3.8 Flash (backed by a natural language rule engine) to extract multiple distinct actions from one sentence.
-3. **Executes and Persists**: Stores the ₹350 and ₹250 `Food` expenses in PostgreSQL and schedules the Friday deadline in the task registry.
-4. **Calculates and Summarizes**: Computes live balances, category totals, and weekly aggregates directly from PostgreSQL.
-5. **Automates Communication**: Generates and sends structured spending reports via Resend (or labeled mock mode).
-6. **Replies with Voice**: Synthesizes natural audio feedback back to the user:
+2. **Understands and Dissects**: Uses Gemini Flash Lite (backed by a conversational intelligence chain and an offline natural language rule engine) to extract multiple distinct actions from one sentence.
+3. **Engages in Natural Conversation**: Answers greetings, casual questions, budgeting inquiries, and clarifications naturally with voice responses while keeping database actions atomic.
+4. **Executes and Persists**: Stores the ₹350 and ₹250 `Food` expenses in PostgreSQL and schedules the Friday deadline in the task registry.
+5. **Calculates and Summarizes**: Computes live balances, category totals, and weekly aggregates directly from PostgreSQL.
+6. **Automates Communication**: Generates and sends structured spending reports via Resend (or labeled mock mode).
+7. **Replies with Voice**: Synthesizes natural audio feedback back to the user:
    > *"Done! Added ₹350 on Swiggy and ₹250 on Zomato (Total: ₹600), and your college form reminder is set for Friday."*
 
 ---
@@ -32,7 +33,7 @@ VoiceLedger is designed with a strict client-server decoupling:
 - **Backend (`backend/`)**: Node.js & Express.js REST API with ES Modules, Zod schema validation, Prisma ORM, and Google Gemini API SDK.
 - **Persistence Layer**: Neon Cloud PostgreSQL managed via Prisma ORM with Decimal-precision arithmetic and JWT authentication.
 - **Outbound Services**: Resend API for transactional email notifications.
-- **Deployment**: Vercel-ready serverless backend and optimized static frontend with client-side SPA routing.
+- **Deployment**: Vercel-ready serverless backend with origin-echo CORS and optimized static frontend with client-side SPA routing.
 
 ### High-Level Architecture Diagram
 
@@ -40,12 +41,12 @@ VoiceLedger is designed with a strict client-server decoupling:
 graph TD
     User([User Voice / Text]) -->|Audio Stream| BrowserSpeech[Browser Web Speech API]
     BrowserSpeech -->|Transcript| ReactClient[React 19 + Vite Frontend]
-    ReactClient -->|REST API with JWT| ExpressServer[Express.js on Vercel Serverless]
+    ReactClient -->|REST API with JWT + History| ExpressServer[Express.js on Vercel Serverless]
     
     subgraph Backend Engine
         ExpressServer --> AuthMid[JWT Authentication Middleware]
         AuthMid --> ZodVal[Zod Validation Layer]
-        ZodVal --> AIService[AI Provider - Google Gemini 3.8 Flash]
+        ZodVal --> AIService[AI Provider - Gemini Flash Lite with Fallback Chain]
         AIService -->|Compound Action JSON| ActionExec[Action Execution Engine]
         
         ActionExec -->|CRUD / Queries| PrismaClient[Prisma ORM]
@@ -74,23 +75,24 @@ sequenceDiagram
     participant Browser as Web Speech API
     participant Client as React Client
     participant Server as Express Server
-    participant Gemini as Gemini AI / Fallback Engine
+    participant Gemini as Gemini Flash Lite / Fallback Engine
     participant DB as Neon PostgreSQL
     participant Audio as SpeechSynthesis
 
     User->>Browser: "Spent 350 on Swiggy and 250 on Zomato"
     Browser->>Client: Emits live transcript (interim -> final)
-    Note over Client: Mutes SpeechSynthesis to prevent feedback loops
-    Client->>Server: POST /api/voice-command { transcript, timezone, dateISO, lang }
-    Server->>Gemini: Prompt with schemas, relative date context, INR defaults
+    Note over Client: Scrollbar stays fixed while speaking
+    Client->>Server: POST /api/voice-command { transcript, timezone, dateISO, lang, conversationHistory }
+    Server->>Gemini: Prompt with schemas, relative dates, conversation context, INR defaults
     Gemini-->>Server: JSON: { actions: [ADD_EXPENSE, ADD_EXPENSE], spokenReply: "..." }
     Server->>Server: Zod schema verification & category normalization
     Server->>DB: Prisma.expense.create({ amount: 350, category: 'Food', note: 'Swiggy' })
     Server->>DB: Prisma.expense.create({ amount: 250, category: 'Food', note: 'Zomato' })
     Server->>DB: Prisma.commandHistory.create({ transcript, actions, results })
     Server-->>Client: 200 OK { success: true, actions, results, spokenReply }
+    Client->>Client: Scroll chat container smoothly to new response
     Client->>Client: Update Dashboard state & Recharts analytics
-    Client->>Audio: Speak spokenReply ("Done! Added ₹350 on Swiggy and ₹250 on Zomato...")
+    Client->>Audio: Speak spokenReply out loud
     Audio-->>User: Audio playback
 ```
 
@@ -98,9 +100,11 @@ sequenceDiagram
 
 ## 4. Key Functional Modules
 
-### 1. AI Voice Command Engine (`backend/src/services/ai.js`)
-- Primary provider: Google Gemini 3.8 Flash via the official `@google/genai` SDK.
-- Zero-Downtime Fallback Parser: When external AI quotas are exhausted or offline, an intelligent natural language tokenizer parses compound multi-expense sentences, relative reminders (e.g. "on Friday", "tomorrow"), tasks, and spending queries with brand categorization (Swiggy, Zomato, Blinkit, Uber, Ola, etc.).
+### 1. AI Voice Command & Dialogue Engine (`backend/src/services/ai.js`)
+- Primary provider: Google Gemini (`gemini-flash-lite-latest`) with automatic model failover (`gemini-flash-lite-latest` -> `gemini-3.1-flash-lite` -> `gemini-3.5-flash-lite`).
+- Natural Conversational Dialogue: Handles general chatter, greetings, affirmations ("yeah yeah yeah", "ok bro"), requests for advice, and jokes warmly without muting or throwing errors.
+- Multi-Turn Conversation History: Incorporates the recent interaction context so the assistant understands follow-up commands and questions.
+- Zero-Downtime Fallback Parser: When external AI quotas are exhausted or network is offline, a natural language rule engine parses compound multi-expense sentences, relative reminders (e.g. "on Friday", "tomorrow"), tasks, spending queries, and small talk.
 
 ### 2. Multi-Action Execution Engine (`backend/src/services/actions.js`)
 - Executes multiple atomic operations sequentially in a single voice request:
@@ -111,7 +115,13 @@ sequenceDiagram
   - `QUERY_SUMMARY`: Real-time SQL aggregation across timeframes.
   - `DELETE_LAST`: Undoes the most recent expense.
 
-### 3. JWT Authentication System (`backend/src/routes/auth.js`)
+### 3. Voice Assistant Interface (`frontend/src/pages/Assistant.jsx`)
+- Audio Volume Toggle: Switch between live voice playback ("Voice On") and silent text mode ("Muted").
+- Smart Contained Scrollbar: Scrollbar remains static while the user is talking into the microphone. Chat scrolls down smoothly inside the chat message container only after the assistant finishes responding.
+- Multi-Turn Activity Log: Displays user speech bubbles and assistant responses with actionable status pills.
+- Always Responsive: Every assistant reply is spoken out loud to guarantee the assistant never goes mute.
+
+### 4. JWT Authentication System (`backend/src/routes/auth.js`)
 - Secure token-based authentication using `jsonwebtoken` and `bcryptjs` password hashing.
 - Endpoints:
   - `POST /api/auth/signup`: Create a user account.
@@ -119,7 +129,7 @@ sequenceDiagram
   - `POST /api/auth/demo`: 1-Click instant login for immediate evaluation with pre-seeded demo access.
   - `GET /api/auth/me`: Current user session check.
 
-### 4. Clean White SaaS Design System
+### 5. Clean White SaaS Design System
 - Modern light UI with `#ffffff` and `#fafbfc` card surfaces, subtle slate borders, and crisp typography.
 - Interactive Recharts graphs with custom tooltips.
 - Visual microphone button with waveform animation and audio state indicators.
@@ -140,7 +150,7 @@ sequenceDiagram
 ### Voice Commands
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/voice-command` | Process natural speech, execute actions, return audio reply |
+| `POST` | `/api/voice-command` | Process natural speech and conversation history, execute actions, return spoken reply |
 
 ### Expenses
 | Method | Endpoint | Description |
@@ -195,7 +205,7 @@ npm install
 ```env
 DATABASE_URL="postgresql://user:password@ep-host-pooler.region.aws.neon.tech/neondb?sslmode=require"
 GEMINI_API_KEY="your_gemini_api_key"
-GEMINI_MODEL="gemini-3.8-flash"
+GEMINI_MODEL="gemini-flash-lite-latest"
 AI_PROVIDER="gemini"
 RESEND_API_KEY="your_resend_api_key"
 EMAIL_FROM="onboarding@resend.dev"
@@ -235,12 +245,18 @@ npm run dev
 
 ### Backend Deployment (Vercel Serverless)
 1. In Vercel, import the repository and set **Root Directory** to `backend`.
-2. Add Environment Variables (`DATABASE_URL`, `JWT_SECRET`, `GEMINI_API_KEY`, `RESEND_API_KEY`, `CLIENT_URL`).
-3. Deploy. The backend exposes serverless functions via `api/index.js` and `vercel.json`.
+2. Add Environment Variables:
+   - `DATABASE_URL`: Neon PostgreSQL pooled connection string.
+   - `JWT_SECRET`: Secret key for signing tokens.
+   - `GEMINI_API_KEY`: Google Gemini API key.
+   - `GEMINI_MODEL`: `gemini-flash-lite-latest`.
+   - `RESEND_API_KEY`: Resend API key for outbound emails.
+   - `CLIENT_URL`: URL of the deployed frontend (e.g. `https://voice-ledger-seven.vercel.app`).
+3. Deploy. Serverless routes are handled via `api/index.js` and `vercel.json`.
 
 ### Frontend Deployment (Vercel Static SPA)
 1. Import the repository and set **Root Directory** to `frontend`.
 2. Framework Preset: **Vite**.
 3. Add Environment Variable:
-   - `VITE_API_URL`: Your deployed backend URL (e.g. `https://your-backend.vercel.app`)
+   - `VITE_API_URL`: Your deployed backend URL (e.g. `https://voice-ledger-ynid.vercel.app`).
 4. Deploy. The frontend includes `vercel.json` rewrites for client-side SPA routing.
