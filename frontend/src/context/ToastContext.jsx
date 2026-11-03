@@ -19,9 +19,17 @@ export function ToastProvider({ children }) {
   }, []);
 
   const addToast = useCallback((message, variant = 'info') => {
+    let text = message;
+    if (typeof message === 'object' && message !== null) {
+      text = message.message || message.error || JSON.stringify(message);
+    }
+    if (typeof text !== 'string') {
+      text = String(text || '');
+    }
+
     const id = ++toastId;
     setToasts((prev) => {
-      const next = [...prev, { id, message, variant }];
+      const next = [...prev, { id, message: text, variant }];
       return next.slice(-3);
     });
     setTimeout(() => removeToast(id), 4000);

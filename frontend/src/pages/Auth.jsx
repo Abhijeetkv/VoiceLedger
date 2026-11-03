@@ -43,8 +43,11 @@ export default function Auth() {
       }
       navigate(from, { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Authentication failed';
-      toast.error(msg);
+      const dataErr = err.response?.data?.error;
+      const errorMsg = typeof dataErr === 'string'
+        ? dataErr
+        : (dataErr?.message || err.response?.data?.message || err.message || 'Authentication failed');
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -59,7 +62,11 @@ export default function Auth() {
       toast.success(`Logged in as ${res.user?.name || 'Demo User'}`);
       navigate(from, { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Demo login failed');
+      const dataErr = err.response?.data?.error;
+      const errorMsg = typeof dataErr === 'string'
+        ? dataErr
+        : (dataErr?.message || err.response?.data?.message || err.message || 'Demo login failed');
+      toast.error(errorMsg);
     } finally {
       setDemoLoading(false);
     }

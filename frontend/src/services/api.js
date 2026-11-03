@@ -1,7 +1,22 @@
 import axios from 'axios';
 
+// Resolve API base URL:
+// - Local dev: defaults to '/api' (proxied by Vite to http://localhost:5000)
+// - Vercel / Production: checks VITE_API_URL, VITE_BACKEND_URL, VITE_URL
+const rawBase = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  ''
+).trim().replace(/\/$/, '');
+
+const baseURL = rawBase
+  ? (rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`)
+  : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   timeout: 30000,
 });
 
